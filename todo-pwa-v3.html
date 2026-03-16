@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#0f0f13">
+<link rel="manifest" id="manifest-placeholder">
+<title>Focus — 个人任务</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0f13; --bg2:#16161c; --bg3:#1e1e26; --bg4:#252530;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --text:#f0eff8; --text2:#9896b0; --text3:#5c5a72;
+  --accent:#7c6af7; --accent2:#a695ff;
+  --blue:#3d8ef0; --blue-bg:rgba(61,142,240,0.12);
+  --green:#3ecf8e; --green-bg:rgba(62,207,142,0.12);
+  --red:#f05252; --red-bg:rgba(240,82,82,0.12);
+  --amber:#f0a952; --amber-bg:rgba(240,169,82,0.12);
+  --r:14px; --r-sm:8px; --shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.app{display:flex;flex-direction:column;min-height:100vh;max-width:480px;margin:0 auto;position:relative}
+
+/* Header */
+.header{padding:52px 20px 0;position:sticky;top:0;z-index:10;background:linear-gradient(to bottom,var(--bg) 80%,transparent)}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.logo span{color:var(--accent2)}
+.header-right{display:flex;align-items:center;gap:8px}
+.stat-chip{font-size:11px;font-weight:500;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;transition:all .2s}
+.stat-chip.active{color:var(--accent2);border-color:rgba(124,106,247,0.3);background:rgba(124,106,247,0.08)}
+.sync-btn{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.sync-btn:hover{border-color:var(--border2);color:var(--text)}
+.sync-btn.syncing svg{animation:spin .8s linear infinite}
+.sync-btn.ok{color:var(--green);border-color:rgba(62,207,142,0.3)}
+.sync-btn.err{color:var(--red);border-color:rgba(240,82,82,0.3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:0 20px 16px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;font-size:13px;font-weight:500;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.tab:hover{border-color:var(--border2);color:var(--text)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(124,106,247,0.35)}
+
+/* Task List */
+.list-wrap{flex:1;padding:0 16px 120px}
+.section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:16px 4px 8px}
+
+/* Task Card */
+.task-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:all .25s;cursor:pointer}
+.task-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shadow)}
+.task-card.done{opacity:0.55}
+.task-card.overdue{border-left:3px solid var(--red)}
+.task-card.due-today{border-left:3px solid var(--amber)}
+.task-card.in-progress{border-left:3px solid var(--blue)}
+.task-card.done-card{border-left:3px solid var(--green)}
+.card-main{display:flex;align-items:flex-start;gap:12px;padding:14px 14px 12px}
+.check-btn{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:2px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:1px}
+.check-btn:hover{border-color:var(--accent2)}
+.task-card.done .check-btn{background:var(--green);border-color:var(--green)}
+.check-icon{display:none}
+.task-card.done .check-icon{display:block}
+.card-body{flex:1;min-width:0}
+.card-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px;word-break:break-word}
+.task-card.done .card-title{text-decoration:line-through;color:var(--text3)}
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.meta-chip{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px}
+.priority-high{background:rgba(240,82,82,0.15);color:#ff8080}
+.priority-mid{background:rgba(240,169,82,0.15);color:#ffc080}
+.priority-low{background:rgba(62,207,142,0.15);color:#80e8b8}
+.date-chip{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.date-chip.overdue{background:var(--red-bg);color:var(--red);border-color:rgba(240,82,82,0.2)}
+.date-chip.today{background:var(--amber-bg);color:var(--amber);border-color:rgba(240,169,82,0.2)}
+.date-chip.soon{background:var(--blue-bg);color:var(--blue);border-color:rgba(61,142,240,0.2)}
+.card-actions{display:flex;gap:4px;margin-left:auto;flex-shrink:0}
+.icon-btn{width:30px;height:30px;border-radius:var(--r-sm);border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn:hover{background:var(--bg4);color:var(--text)}
+
+/* Progress */
+.card-progress{padding:0 14px 12px}
+.progress-row{display:flex;align-items:center;gap:8px}
+.progress-bar-wrap{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:2px;transition:width .3s;background:var(--accent)}
+.progress-label{font-size:11px;color:var(--text3);min-width:28px;text-align:right}
+.progress-input-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.progress-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg4);outline:none}
+.progress-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent2);cursor:pointer;border:2px solid var(--bg2)}
+
+/* Card Detail */
+.card-detail{border-top:1px solid var(--border);padding:12px 14px;display:none}
+.card-detail.open{display:block}
+.detail-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px;white-space:pre-wrap}
+.comment-item{background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px;font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.5}
+.comment-meta{font-size:11px;color:var(--text3);margin-bottom:2px}
+.add-comment-row{display:flex;gap:6px;margin-top:8px}
+.add-comment-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 10px;outline:none}
+.add-comment-input:focus{border-color:var(--accent)}
+.add-comment-input::placeholder{color:var(--text3)}
+.add-comment-btn{background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-size:13px;font-weight:500;padding:7px 12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.card-timestamps{font-size:11px;color:var(--text3);margin-top:8px}
+
+/* FAB */
+.fab{position:fixed;bottom:28px;right:50%;transform:translateX(50%) translateX(calc(480px/2 - 28px));width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(124,106,247,0.5);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:50}
+.fab:hover{transform:translateX(50%) translateX(calc(480px/2 - 28px)) scale(1.08)}
+.fab:active{transform:translateX(50%) translateX(calc(480px/2 - 28px)) scale(0.95)}
+@media(max-width:480px){.fab{right:20px;transform:none}.fab:hover{transform:scale(1.08)}.fab:active{transform:scale(0.95)}}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:40;background:linear-gradient(to top,var(--bg) 70%,transparent);padding:12px 16px 24px;display:flex;justify-content:space-around;align-items:center}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;padding:6px 12px;border-radius:12px;transition:all .2s}
+.nav-btn.active{color:var(--accent2)}
+.nav-btn svg{width:20px;height:20px}
+
+/* Overlay / Sheet */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px)}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 20px 40px;border:1px solid var(--border);transform:translateY(40px);transition:transform .3s}
+.overlay.open .sheet{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--bg4);border-radius:2px;margin:12px auto 20px}
+.sheet-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px}
+
+/* Form */
+.form-group{margin-bottom:16px}
+label{font-size:12px;font-weight:500;color:var(--text3);letter-spacing:0.5px;display:block;margin-bottom:6px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--text3)}
+textarea.form-input{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.priority-btns{display:flex;gap:8px}
+.priority-btn{flex:1;padding:9px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center;font-family:'DM Sans',sans-serif}
+.priority-btn[data-p="high"].selected{background:rgba(240,82,82,0.15);border-color:rgba(240,82,82,0.4);color:#ff8080}
+.priority-btn[data-p="mid"].selected{background:rgba(240,169,82,0.15);border-color:rgba(240,169,82,0.4);color:#ffc080}
+.priority-btn[data-p="low"].selected{background:rgba(62,207,142,0.15);border-color:rgba(62,207,142,0.4);color:#80e8b8}
+.progress-edit-row{display:flex;align-items:center;gap:10px}
+.progress-edit-row .progress-slider{flex:1}
+.progress-edit-row span{font-size:13px;color:var(--text2);min-width:36px}
+.btn-primary{width:100%;padding:14px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.btn-primary:hover{opacity:0.9}
+.btn-danger{width:100%;padding:12px;border-radius:var(--r);border:1px solid rgba(240,82,82,0.3);background:var(--red-bg);color:var(--red);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:8px;transition:all .2s}
+.btn-danger:hover{background:rgba(240,82,82,0.2)}
+
+/* Pages */
+.page{display:none}
+.page.active{display:block}
+
+/* Calendar */
+.cal-wrap{padding:52px 20px 120px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cal-header h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+.cal-nav-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text2);font-size:18px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cal-nav-btn:hover{border-color:var(--border2);color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:16px}
+.cal-day-label{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:6px 0;letter-spacing:0.5px}
+.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:var(--r-sm);cursor:pointer;transition:all .2s;font-size:13px;font-weight:500;color:var(--text2);gap:2px}
+.cal-day:hover{background:var(--bg3);color:var(--text)}
+.cal-day.other-month{color:var(--text3);opacity:0.35}
+.cal-day.today-cell{color:var(--accent2);font-weight:700}
+.cal-day.selected{background:var(--accent);color:#fff}
+.dot-row{display:flex;gap:2px;min-height:6px;align-items:center}
+.cal-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.cal-selected-tasks{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.cal-selected-date{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text2)}
+.cal-task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer}
+.cal-task-item:last-child{border-bottom:none}
+.cal-task-item:hover{color:var(--accent2)}
+.cal-task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Summary */
+.summary-wrap{padding:52px 20px 120px}
+.summary-header{margin-bottom:20px}
+.summary-header h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px}
+.summary-header p{font-size:13px;color:var(--text3)}
+.summary-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.stat-card .num{font-family:'Syne',sans-serif;font-size:28px;font-weight:800}
+.stat-card .lbl{font-size:12px;color:var(--text3);margin-top:2px}
+.stat-card.blue .num{color:var(--blue)}
+.stat-card.green .num{color:var(--green)}
+.stat-card.red .num{color:var(--red)}
+.stat-card.amber .num{color:var(--amber)}
+.preview-task{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:6px;font-size:13px}
+.preview-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sub-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:10px;letter-spacing:1.5px;text-transform:uppercase}
+.journal-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.journal-date-label{font-size:14px;font-weight:500;color:var(--text)}
+.journal-nav-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text2);font-size:16px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.journal-nav-btn:hover{border-color:var(--border2);color:var(--text)}
+.journal-textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:14px;outline:none;line-height:1.7;min-height:160px;resize:none;transition:border-color .2s}
+.journal-textarea:focus{border-color:var(--accent)}
+.journal-textarea::placeholder{color:var(--text3)}
+.journal-save-btn{margin-top:10px;padding:10px 20px;border-radius:var(--r-sm);background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.journal-save-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.journal-saved-hint{font-size:11px;color:var(--green);margin-top:6px;opacity:0;transition:opacity .3s}
+.journal-saved-hint.show{opacity:1}
+
+/* Settings */
+.settings-wrap{padding:52px 20px 120px}
+.settings-wrap>h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:24px}
+.settings-section{margin-bottom:28px}
+.settings-section>h3{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:14px;color:var(--text)}
+.settings-row-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.settings-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text2);font-size:13px;font-weight:500;padding:7px 14px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;margin-left:12px}
+.settings-btn:hover{border-color:var(--border2);color:var(--text)}
+.settings-btn.accent{background:rgba(124,106,247,0.15);border-color:rgba(124,106,247,0.3);color:var(--accent2)}
+.settings-btn.green{background:var(--green-bg);border-color:rgba(62,207,142,0.3);color:var(--green)}
+.settings-btn.danger{background:var(--red-bg);border-color:rgba(240,82,82,0.3);color:var(--red)}
+.data-size-info{font-size:12px;color:var(--text3);padding:12px 16px}
+
+/* Cloud setup card */
+.cloud-setup{background:linear-gradient(135deg,rgba(61,142,240,0.1),rgba(62,207,142,0.05));border:1px solid rgba(61,142,240,0.2);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.cloud-setup h4{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--blue);margin-bottom:4px}
+.cloud-setup p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.cloud-status{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--r-sm);font-size:13px;margin-bottom:12px}
+.cloud-status.connected{background:var(--green-bg);border:1px solid rgba(62,207,142,0.25);color:var(--green)}
+.cloud-status.disconnected{background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
+.cloud-status.error{background:var(--red-bg);border:1px solid rgba(240,82,82,0.25);color:var(--red)}
+.token-input-wrap{position:relative}
+.token-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 44px 11px 14px;outline:none;transition:border-color .2s;letter-spacing:0.5px}
+.token-input:focus{border-color:var(--accent)}
+.token-input::placeholder{color:var(--text3);letter-spacing:0}
+.token-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;display:flex;align-items:center}
+.token-save-btn{width:100%;margin-top:10px;padding:11px;border-radius:var(--r-sm);background:var(--blue);border:none;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.token-save-btn:hover{opacity:0.9}
+.sync-info-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:6px}
+
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:0.4}
+.empty-state p{font-size:14px}
+
+/* Toast */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:13px;color:var(--text);z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Confirm */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px);padding:20px}
+.confirm-overlay.open{opacity:1;pointer-events:all}
+.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;max-width:320px;width:100%;text-align:center}
+.confirm-box h3{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px}
+.confirm-box p{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:10px}
+.confirm-cancel{flex:1;padding:11px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.confirm-ok{flex:1;padding:11px;border-radius:var(--r-sm);border:none;background:var(--red);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif}
+
+/* Loading screen */
+.loading-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+.loading-screen.hide{opacity:0;pointer-events:none}
+.loading-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800}
+.loading-logo span{color:var(--accent2)}
+.loading-dots{display:flex;gap:6px}
+.loading-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-logo">Focus<span>.</span></div>
+  <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+</div>
+
+<div class="app">
+
+<!-- TASKS -->
+<div id="page-tasks" class="page active">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">Focus<span>.</span></div>
+      <div class="header-right">
+        <div class="stat-chip" id="stat-today">今日 0</div>
+        <div class="stat-chip" id="stat-done">完成 0</div>
+        <button class="sync-btn" id="sync-btn" onclick="manualSync()" title="同步">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-filter="all">全部</button>
+      <button class="tab" data-filter="in-progress">进行中</button>
+      <button class="tab" data-filter="done">已完成</button>
+      <button class="tab" data-filter="overdue">已超期</button>
+      <button class="tab" data-filter="today">今日到期</button>
+    </div>
+  </div>
+  <div class="list-wrap" id="task-list"></div>
+</div>
+
+<!-- CALENDAR -->
+<div id="page-calendar" class="page">
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <button class="cal-nav-btn" id="cal-prev">‹</button>
+      <h2 id="cal-month-label"></h2>
+      <button class="cal-nav-btn" id="cal-next">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-selected-tasks">
+      <div class="cal-selected-date" id="cal-selected-date">选择日期查看任务</div>
+      <div id="cal-task-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="page-summary" class="page">
+  <div class="summary-wrap">
+    <div class="summary-header">
+      <h2>每日总结</h2>
+      <p id="summary-date-label"></p>
+    </div>
+    <div class="summary-stats-grid">
+      <div class="stat-card blue"><div class="num" id="s-inprogress">0</div><div class="lbl">进行中</div></div>
+      <div class="stat-card green"><div class="num" id="s-done">0</div><div class="lbl">已完成</div></div>
+      <div class="stat-card red"><div class="num" id="s-overdue">0</div><div class="lbl">已超期</div></div>
+      <div class="stat-card amber"><div class="num" id="s-today">0</div><div class="lbl">今日到期</div></div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div class="sub-label">Today's Tasks</div>
+      <div id="today-preview-list"></div>
+    </div>
+    <div>
+      <div class="sub-label">Journal</div>
+      <div class="journal-date-nav">
+        <button class="journal-nav-btn" id="journal-prev">‹</button>
+        <span class="journal-date-label" id="journal-date-display"></span>
+        <button class="journal-nav-btn" id="journal-next">›</button>
+      </div>
+      <textarea class="journal-textarea" id="journal-text" placeholder="记录今天的进展、想法、感受…"></textarea>
+      <button class="journal-save-btn" id="journal-save-btn">保存日记</button>
+      <div class="journal-saved-hint" id="journal-saved-hint">已保存 ✓</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="settings-wrap">
+    <h2>设置</h2>
+
+    <div class="settings-section">
+      <h3>云端同步</h3>
+      <div class="cloud-setup">
+        <h4>GitHub Gist 同步</h4>
+        <p>数据自动保存到你的 GitHub Gist，换设备或清缓存都不丢失。需要 GitHub Personal Access Token（只需 gist 权限）。</p>
+        <div class="cloud-status disconnected" id="cloud-status">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="cloud-status-text">未配置</span>
+        </div>
+        <label style="margin-bottom:6px">GitHub Token</label>
+        <div class="token-input-wrap">
+          <input type="password" class="token-input" id="token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+          <button class="token-toggle" id="token-toggle" onclick="toggleTokenVisibility()">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <button class="token-save-btn" id="token-save-btn" onclick="saveToken()">连接并同步</button>
+        <div class="sync-info-row">
+          <span id="last-sync-label">从未同步</span>
+          <span id="gist-id-label" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>数据管理</h3>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-row-label">立即同步</div><div class="settings-row-sub">手动推送数据到云端</div></div>
+          <button class="settings-btn green" id="manual-sync-btn" onclick="manualSync()">同步</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">从云端恢复</div><div class="settings-row-sub">用云端数据覆盖本地</div></div>
+          <button class="settings-btn accent" id="pull-btn" onclick="pullFromCloud()">恢复</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">导出备份</div><div class="settings-row-sub">保存为本地 JSON 文件</div></div>
+          <button class="settings-btn" id="export-btn">导出</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">导入恢复</div><div class="settings-row-sub">从本地备份文件恢复</div></div>
+          <button class="settings-btn" id="import-btn">导入</button>
+          <input type="file" id="import-input" accept=".json" style="display:none">
+        </div>
+        <div class="data-size-info" id="data-size-info"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>数据清理</h3>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-row-label">清除已完成任务</div><div class="settings-row-sub">删除所有已标记完成的任务</div></div>
+          <button class="settings-btn danger" id="clear-done-btn">清除</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">重置全部数据</div><div class="settings-row-sub">清空所有任务和日记</div></div>
+          <button class="settings-btn danger" id="reset-btn">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">Focus v3.0 · Token 仅存储在本设备</div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openAdd()">
+  <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-tasks" onclick="switchPage('tasks')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    任务
+  </button>
+  <button class="nav-btn" id="nav-calendar" onclick="switchPage('calendar')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    日历
+  </button>
+  <button class="nav-btn" id="nav-summary" onclick="switchPage('summary')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    总结
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="switchPage('settings')">
+    <svg fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    设置
+  </button>
+</nav>
+</div>
+
+<!-- Add/Edit Sheet -->
+<div class="overlay" id="task-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-title">新建任务</div>
+    <div class="form-group"><label>任务名称 *</label><input type="text" class="form-input" id="f-name" placeholder="要完成什么？" maxlength="100"></div>
+    <div class="form-group form-row">
+      <div><label>截止日期</label><input type="date" class="form-input" id="f-date"></div>
+      <div><label>截止时间</label><input type="time" class="form-input" id="f-time"></div>
+    </div>
+    <div class="form-group"><label>优先级</label>
+      <div class="priority-btns">
+        <button class="priority-btn" data-p="high">🔴 高</button>
+        <button class="priority-btn selected" data-p="mid">🟡 中</button>
+        <button class="priority-btn" data-p="low">🟢 低</button>
+      </div>
+    </div>
+    <div class="form-group"><label>完成进度</label>
+      <div class="progress-edit-row"><input type="range" class="progress-slider" id="f-progress" min="0" max="100" value="0"><span id="f-progress-label">0%</span></div>
+    </div>
+    <div class="form-group"><label>详细描述</label><textarea class="form-input" id="f-desc" placeholder="任务背景、注意事项…" rows="3"></textarea></div>
+    <button class="btn-primary" id="submit-task-btn">创建任务</button>
+    <button class="btn-danger" id="delete-task-btn" style="display:none">删除任务</button>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3 id="confirm-title">确认</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button class="confirm-ok" id="confirm-ok">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  Local Storage
+// ══════════════════════════════════════════
+const LS = {
+  getTasks:    () => JSON.parse(localStorage.getItem('focus_tasks')    || '[]'),
+  saveTasks:   v  => localStorage.setItem('focus_tasks',    JSON.stringify(v)),
+  getJournals: () => JSON.parse(localStorage.getItem('focus_journals') || '{}'),
+  saveJournals:v  => localStorage.setItem('focus_journals', JSON.stringify(v)),
+  getToken:    () => localStorage.getItem('focus_gh_token') || '',
+  saveToken:   v  => localStorage.setItem('focus_gh_token', v),
+  getGistId:   () => localStorage.getItem('focus_gist_id') || '',
+  saveGistId:  v  => localStorage.setItem('focus_gist_id', v),
+  getLastSync: () => localStorage.getItem('focus_last_sync') || '',
+  saveLastSync:v  => localStorage.setItem('focus_last_sync', v),
+};
+
+// ══════════════════════════════════════════
+//  GitHub Gist API
+// ══════════════════════════════════════════
+const GIST_FILENAME = 'focus-data.json';
+
+async function gistRequest(method, path, body) {
+  const token = LS.getToken();
+  if (!token) throw new Error('未配置 Token');
+  const res = await fetch('https://api.github.com' + path, {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function pushToGist() {
+  const data = { tasks: LS.getTasks(), journals: LS.getJournals(), updatedAt: new Date().toISOString(), version: 3 };
+  const content = JSON.stringify(data, null, 2);
+  let gistId = LS.getGistId();
+
+  if (gistId) {
+    // Update existing gist
+    await gistRequest('PATCH', '/gists/' + gistId, {
+      files: { [GIST_FILENAME]: { content } }
+    });
+  } else {
+    // Create new gist
+    const res = await gistRequest('POST', '/gists', {
+      description: 'Focus App Data',
+      public: false,
+      files: { [GIST_FILENAME]: { content } }
+    });
+    gistId = res.id;
+    LS.saveGistId(gistId);
+  }
+  const now = new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  LS.saveLastSync(now);
+  return gistId;
+}
+
+async function pullFromGist() {
+  const gistId = LS.getGistId();
+  if (!gistId) throw new Error('没有找到云端数据，请先完成一次推送');
+  const res = await gistRequest('GET', '/gists/' + gistId);
+  const file = res.files[GIST_FILENAME];
+  if (!file) throw new Error('Gist 中没有找到数据文件');
+  const data = JSON.parse(file.content);
+  if (data.tasks) LS.saveTasks(data.tasks);
+  if (data.journals) LS.saveJournals(data.journals);
+  const now = new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  LS.saveLastSync(now);
+  return data;
+}
+
+async function findExistingGist() {
+  // Try to find existing Focus gist
+  const gists = await gistRequest('GET', '/gists?per_page=100');
+  const found = gists.find(g => g.files && g.files[GIST_FILENAME]);
+  if (found) { LS.saveGistId(found.id); return found.id; }
+  return null;
+}
+
+// ══════════════════════════════════════════
+//  Sync UI State
+// ══════════════════════════════════════════
+function setSyncState(state) {
+  // state: 'idle' | 'syncing' | 'ok' | 'err'
+  const btn = document.getElementById('sync-btn');
+  btn.className = 'sync-btn' + (state === 'syncing' ? ' syncing' : state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+  if (state === 'ok') setTimeout(() => setSyncState('idle'), 2500);
+}
+
+function updateCloudStatus() {
+  const token = LS.getToken();
+  const gistId = LS.getGistId();
+  const lastSync = LS.getLastSync();
+  const el = document.getElementById('cloud-status');
+  const txt = document.getElementById('cloud-status-text');
+  const syncLabel = document.getElementById('last-sync-label');
+  const gistLabel = document.getElementById('gist-id-label');
+
+  if (!token) {
+    el.className = 'cloud-status disconnected';
+    txt.textContent = '未配置 Token';
+  } else if (gistId) {
+    el.className = 'cloud-status connected';
+    txt.textContent = '已连接';
+    gistLabel.textContent = 'Gist: ' + gistId.slice(0, 8) + '…';
+  } else {
+    el.className = 'cloud-status disconnected';
+    txt.textContent = 'Token 已填写，尚未同步';
+  }
+  syncLabel.textContent = lastSync ? ('上次同步：' + lastSync) : '从未同步';
+  if (token) document.getElementById('token-input').value = token;
+}
+
+// ══════════════════════════════════════════
+//  Sync Actions
+// ══════════════════════════════════════════
+let syncDebounceTimer = null;
+
+// Auto-sync after data changes (debounced 3s)
+function scheduleAutoSync() {
+  if (!LS.getToken()) return;
+  clearTimeout(syncDebounceTimer);
+  syncDebounceTimer = setTimeout(() => {
+    pushToGist()
+      .then(() => { setSyncState('ok'); updateCloudStatus(); })
+      .catch(() => setSyncState('err'));
+  }, 3000);
+  setSyncState('syncing');
+}
+
+async function manualSync() {
+  if (!LS.getToken()) { showToast('请先在设置里配置 Token'); switchPage('settings'); return; }
+  setSyncState('syncing');
+  try {
+    await pushToGist();
+    setSyncState('ok');
+    updateCloudStatus();
+    showToast('✓ 数据已同步到云端');
+  } catch (e) {
+    setSyncState('err');
+    showToast('同步失败：' + e.message);
+  }
+}
+
+async function pullFromCloud() {
+  if (!LS.getToken()) { showToast('请先配置 Token'); return; }
+  showConfirm('从云端恢复', '将用云端数据覆盖本地，本地未同步的更改会丢失，确定吗？', async () => {
+    setSyncState('syncing');
+    try {
+      const data = await pullFromGist();
+      tasks = LS.getTasks();
+      render();
+      setSyncState('ok');
+      updateCloudStatus();
+      showToast(`✓ 已恢复：${(data.tasks || []).length} 个任务`);
+    } catch (e) {
+      setSyncState('err');
+      showToast('恢复失败：' + e.message);
+    }
+  });
+}
+
+async function saveToken() {
+  const token = document.getElementById('token-input').value.trim();
+  if (!token) { showToast('请输入 Token'); return; }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    showToast('Token 格式不对，应以 ghp_ 开头'); return;
+  }
+  LS.saveToken(token);
+  const btn = document.getElementById('token-save-btn');
+  btn.textContent = '连接中…'; btn.disabled = true;
+
+  try {
+    // Verify token works
+    await gistRequest('GET', '/user');
+    // Look for existing gist
+    const existing = await findExistingGist();
+    if (existing) {
+      // Pull existing data
+      const data = await pullFromGist();
+      tasks = LS.getTasks();
+      render();
+      showToast(`✓ 已连接，找到 ${(data.tasks || []).length} 个任务`);
+    } else {
+      // First time: push current data
+      await pushToGist();
+      showToast('✓ 已连接，数据已上传');
+    }
+    updateCloudStatus();
+  } catch (e) {
+    showToast('连接失败：' + e.message);
+    LS.saveToken('');
+  } finally {
+    btn.textContent = '连接并同步'; btn.disabled = false;
+  }
+}
+
+function toggleTokenVisibility() {
+  const inp = document.getElementById('token-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ══════════════════════════════════════════
+//  App State
+// ══════════════════════════════════════════
+let tasks = LS.getTasks();
+let currentFilter = 'all', editingId = null, selectedPriority = 'mid', currentPage = 'tasks';
+let journalDate = todayStr(), calYear, calMonth, calSelectedDate;
+let pendingConfirmCb = null;
+
+// ══════════════════════════════════════════
+//  Helpers
+// ══════════════════════════════════════════
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>'); }
+function getDeadline(t) { if (!t.date) return null; return t.time ? new Date(t.date+'T'+t.time) : new Date(t.date+'T23:59:59'); }
+function isOverdue(t) { if (t.done) return false; const d = getDeadline(t); return d && d < new Date(); }
+function isDueToday(t) { if (t.done) return false; return t.date === todayStr() && !isOverdue(t); }
+function isDueSoon(t) { if (t.done||!t.date) return false; const d=getDeadline(t),diff=d-new Date(); return diff>0&&diff<3*24*3600*1000; }
+function formatDate(ds, ts) {
+  if (!ds) return null;
+  const tom = new Date(); tom.setDate(tom.getDate()+1);
+  const tomStr = tom.toISOString().slice(0,10);
+  let l = ds===todayStr()?'今天':ds===tomStr?'明天':(()=>{const d=new Date(ds);return`${d.getMonth()+1}月${d.getDate()}日`})();
+  return ts ? l+' '+ts : l;
+}
+function formatFull(s) { if(!s)return''; const d=new Date(s); return`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`; }
+
+// ══════════════════════════════════════════
+//  Filter / Sort
+// ══════════════════════════════════════════
+function filterTasks(f) {
+  return tasks.filter(t => {
+    if (f==='all') return true; if (f==='done') return t.done;
+    if (f==='in-progress') return !t.done&&!isOverdue(t);
+    if (f==='overdue') return isOverdue(t); if (f==='today') return isDueToday(t); return true;
+  });
+}
+function sortTasks(arr) {
+  const pri={high:0,mid:1,low:2};
+  return [...arr].sort((a,b) => {
+    if (a.done!==b.done) return a.done?1:-1;
+    const ao=isOverdue(a),bo=isOverdue(b); if(ao!==bo) return ao?-1:1;
+    if (!a.date&&!b.date) return (pri[a.priority||'mid'])-(pri[b.priority||'mid']);
+    if (!a.date) return 1; if (!b.date) return -1;
+    return getDeadline(a)-getDeadline(b);
+  });
+}
+
+// ══════════════════════════════════════════
+//  Render Tasks
+// ══════════════════════════════════════════
+function render() {
+  const list = document.getElementById('task-list');
+  const filtered = sortTasks(filterTasks(currentFilter));
+  const todayCnt = tasks.filter(t=>isDueToday(t)).length;
+  const doneCnt  = tasks.filter(t=>t.done).length;
+  const s1=document.getElementById('stat-today'),s2=document.getElementById('stat-done');
+  s1.textContent=`今日 ${todayCnt}`; s2.textContent=`完成 ${doneCnt}`;
+  s1.classList.toggle('active', todayCnt>0);
+  if (!filtered.length) { list.innerHTML='<div class="empty-state"><div class="icon">✦</div><p>这里空空如也<br>点右下角添加任务</p></div>'; return; }
+  const groups={}, order=['已超期','今天','本周','未来','无期限','已完成'];
+  filtered.forEach(t => {
+    let g='无期限';
+    if (isOverdue(t)) g='已超期'; else if (t.done) g='已完成'; else if (isDueToday(t)) g='今天';
+    else if (t.date) { const diff=getDeadline(t)-new Date(); g=diff<7*24*3600*1000?'本周':'未来'; }
+    (groups[g]||(groups[g]=[])).push(t);
+  });
+  list.innerHTML = order.filter(g=>groups[g]).map(g => '<div class="section-label">'+g+'</div>' + groups[g].map(renderCard).join('')).join('');
+}
+
+function renderCard(t) {
+  const over=isOverdue(t),tod=isDueToday(t),soon=isDueSoon(t);
+  const cls='task-card'+(t.done?' done done-card':over?' overdue':tod?' due-today':' in-progress');
+  const pL={high:'高',mid:'中',low:'低'}[t.priority||'mid'];
+  const pC={high:'priority-high',mid:'priority-mid',low:'priority-low'}[t.priority||'mid'];
+  const dl=formatDate(t.date,t.time);
+  const dC='meta-chip date-chip'+(over?' overdue':tod?' today':soon?' soon':'');
+  const cr=new Date(t.createdAt).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const cms=(t.comments||[]);
+  const cmH=cms.map(c=>`<div class="comment-item"><div class="comment-meta">${new Date(c.ts).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>${esc(c.text)}</div>`).join('');
+  return `<div class="${cls}" id="card-${t.id}">
+<div class="card-main">
+  <button class="check-btn" onclick="event.stopPropagation();toggleDone('${t.id}')">
+    <svg class="check-icon" width="12" height="12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 10 10 2"/></svg>
+  </button>
+  <div class="card-body" onclick="toggleExpand('${t.id}')">
+    <div class="card-title">${esc(t.name)}</div>
+    <div class="card-meta">
+      <span class="meta-chip ${pC}">${pL}</span>
+      ${dl?`<span class="${dC}">${dl}</span>`:''}
+      ${(t.progress||0)>0?`<span class="meta-chip date-chip">${t.progress}%</span>`:''}
+      ${cms.length?`<span class="meta-chip date-chip">💬 ${cms.length}</span>`:''}
+    </div>
+  </div>
+  <div class="card-actions">
+    <button class="icon-btn" onclick="event.stopPropagation();openEdit('${t.id}')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 2l1 1-8 8H3v-1L11 2z"/></svg>
+    </button>
+  </div>
+</div>
+<div class="card-progress">
+  <div class="progress-row">
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${t.progress||0}%"></div></div>
+    <span class="progress-label">${t.progress||0}%</span>
+  </div>
+  <div class="progress-input-row" onclick="event.stopPropagation()">
+    <input type="range" class="progress-slider" min="0" max="100" value="${t.progress||0}" oninput="updateProgress('${t.id}',this.value,this)" style="flex:1">
+  </div>
+</div>
+<div class="card-detail" id="detail-${t.id}">
+  ${t.desc?`<div class="detail-desc">${esc(t.desc)}</div>`:''}
+  <div><div id="comments-${t.id}">${cmH}</div>
+  <div class="add-comment-row" onclick="event.stopPropagation()">
+    <input type="text" class="add-comment-input" id="ci-${t.id}" placeholder="添加备注…" maxlength="200">
+    <button class="add-comment-btn" onclick="addComment('${t.id}')">添加</button>
+  </div></div>
+  <div class="card-timestamps">创建于 ${cr}</div>
+</div></div>`;
+}
+
+// ══════════════════════════════════════════
+//  Task Actions (all trigger auto-sync)
+// ══════════════════════════════════════════
+function saveAndSync() { LS.saveTasks(tasks); scheduleAutoSync(); }
+
+function toggleDone(id) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  t.done=!t.done; if(t.done&&(t.progress||0)<100) t.progress=100;
+  saveAndSync(); render(); showToast(t.done?'✓ 已标记完成':'↩ 已取消完成');
+}
+function toggleExpand(id) { const el=document.getElementById('detail-'+id); if(el) el.classList.toggle('open'); }
+function updateProgress(id, val, slider) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  t.progress=parseInt(val); saveAndSync();
+  const w=slider.closest('.card-progress');
+  w.querySelector('.progress-bar-fill').style.width=val+'%';
+  w.querySelector('.progress-label').textContent=val+'%';
+  const card=document.getElementById('card-'+id);
+  if(card) card.querySelectorAll('.meta-chip.date-chip').forEach(c=>{if(c.textContent.endsWith('%')) c.textContent=val+'%'});
+}
+function addComment(id) {
+  const inp=document.getElementById('ci-'+id); const text=inp.value.trim(); if(!text) return;
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  (t.comments||(t.comments=[])).push({text, ts:Date.now()});
+  saveAndSync(); inp.value='';
+  const con=document.getElementById('comments-'+id);
+  if(con) con.innerHTML=t.comments.map(c=>`<div class="comment-item"><div class="comment-meta">${new Date(c.ts).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>${esc(c.text)}</div>`).join('');
+  showToast('备注已添加');
+}
+
+// ══════════════════════════════════════════
+//  Filter Tabs
+// ══════════════════════════════════════════
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn=e.target.closest('.tab'); if(!btn) return;
+  currentFilter=btn.dataset.filter;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active'); render();
+});
+
+// ══════════════════════════════════════════
+//  Add / Edit Sheet
+// ══════════════════════════════════════════
+const overlay = document.getElementById('task-overlay');
+
+function openAdd(prefillDate) {
+  editingId=null; selectedPriority='mid';
+  document.getElementById('sheet-title').textContent='新建任务';
+  document.getElementById('f-name').value='';
+  document.getElementById('f-date').value=typeof prefillDate==='string'?prefillDate:'';
+  document.getElementById('f-time').value='';
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-progress').value=0;
+  document.getElementById('f-progress-label').textContent='0%';
+  document.getElementById('submit-task-btn').textContent='创建任务';
+  document.getElementById('delete-task-btn').style.display='none';
+  setPriority('mid'); overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('f-name').focus(),350);
+}
+function openEdit(id) {
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  editingId=id; selectedPriority=t.priority||'mid';
+  document.getElementById('sheet-title').textContent='编辑任务';
+  document.getElementById('f-name').value=t.name;
+  document.getElementById('f-date').value=t.date||'';
+  document.getElementById('f-time').value=t.time||'';
+  document.getElementById('f-desc').value=t.desc||'';
+  document.getElementById('f-progress').value=t.progress||0;
+  document.getElementById('f-progress-label').textContent=(t.progress||0)+'%';
+  document.getElementById('submit-task-btn').textContent='保存修改';
+  document.getElementById('delete-task-btn').style.display='block';
+  setPriority(selectedPriority); overlay.classList.add('open');
+}
+function closeSheet() { overlay.classList.remove('open'); }
+overlay.addEventListener('click', e=>{ if(e.target===overlay) closeSheet(); });
+
+document.querySelectorAll('.priority-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{ selectedPriority=btn.dataset.p; setPriority(selectedPriority); });
+});
+function setPriority(p) { document.querySelectorAll('.priority-btn').forEach(b=>b.classList.toggle('selected',b.dataset.p===p)); }
+document.getElementById('f-progress').addEventListener('input',function(){ document.getElementById('f-progress-label').textContent=this.value+'%'; });
+
+document.getElementById('submit-task-btn').addEventListener('click', () => {
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){ document.getElementById('f-name').focus(); showToast('请输入任务名称'); return; }
+  if (editingId) {
+    const t=tasks.find(x=>x.id===editingId);
+    Object.assign(t,{name,date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,desc:document.getElementById('f-desc').value.trim(),priority:selectedPriority,progress:parseInt(document.getElementById('f-progress').value),updatedAt:Date.now()});
+  } else {
+    tasks.unshift({id:uid(),name,date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,desc:document.getElementById('f-desc').value.trim(),priority:selectedPriority,progress:parseInt(document.getElementById('f-progress').value),done:false,comments:[],createdAt:Date.now()});
+  }
+  saveAndSync(); closeSheet(); render();
+  showToast(editingId?'✓ 已保存':'✓ 任务已创建');
+});
+
+document.getElementById('delete-task-btn').addEventListener('click', () => {
+  const id=editingId; closeSheet();
+  setTimeout(()=>showConfirm('确认删除','删除后无法恢复，确定吗？',()=>{
+    tasks=tasks.filter(x=>x.id!==id); saveAndSync(); render(); showToast('任务已删除');
+  }),200);
+});
+
+// ══════════════════════════════════════════
+//  Calendar
+// ══════════════════════════════════════════
+function initCalendar() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); calSelectedDate=todayStr(); }
+function renderCalendar() {
+  const months=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('cal-month-label').textContent=`${calYear}年 ${months[calMonth]}`;
+  const grid=document.getElementById('cal-grid');
+  let html=['日','一','二','三','四','五','六'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth,1).getDay();
+  const total=new Date(calYear,calMonth+1,0).getDate();
+  const prevTotal=new Date(calYear,calMonth,0).getDate();
+  const taskMap={}; tasks.forEach(t=>{if(t.date)(taskMap[t.date]||(taskMap[t.date]=[])).push(t)});
+  for(let i=0;i<first;i++){
+    const d=prevTotal-first+1+i;
+    const m=calMonth===0?12:calMonth,y=calMonth===0?calYear-1:calYear;
+    const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    html+=`<div class="cal-day other-month" onclick="selectCalDate('${ds}')">${d}</div>`;
+  }
+  for(let d=1;d<=total;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===todayStr(),isSel=ds===calSelectedDate;
+    const ts=taskMap[ds]||[];
+    const dots=ts.slice(0,3).map(t=>{const col=t.done?'var(--green)':isOverdue(t)?'var(--red)':isDueToday(t)?'var(--amber)':'var(--blue)';return`<div class="cal-dot" style="background:${col}"></div>`;}).join('');
+    html+=`<div class="cal-day${isToday?' today-cell':''}${isSel?' selected':''}" onclick="selectCalDate('${ds}')">${d}<div class="dot-row">${dots}</div></div>`;
+  }
+  const rem=(7-((first+total)%7))%7;
+  for(let i=1;i<=rem;i++){
+    const m=calMonth===11?1:calMonth+2,y=calMonth===11?calYear+1:calYear;
+    const ds=`${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    html+=`<div class="cal-day other-month" onclick="selectCalDate('${ds}')">${i}</div>`;
+  }
+  grid.innerHTML=html; renderCalSelected();
+}
+function selectCalDate(ds){ calSelectedDate=ds; renderCalendar(); }
+function renderCalSelected(){
+  const sel=document.getElementById('cal-selected-date');
+  const list=document.getElementById('cal-task-list');
+  const ts=tasks.filter(t=>t.date===calSelectedDate);
+  sel.textContent=formatFull(calSelectedDate)+(ts.length?` · ${ts.length}个任务`:'');
+  if(!ts.length){ list.innerHTML=`<div style="font-size:13px;color:var(--text3);padding:8px 0">这天没有任务 <span style="cursor:pointer;color:var(--accent2)" onclick="openAdd('${calSelectedDate}')">+ 添加</span></div>`; return; }
+  list.innerHTML=ts.map(t=>{const col=t.done?'var(--green)':isOverdue(t)?'var(--red)':isDueToday(t)?'var(--amber)':'var(--blue)';return`<div class="cal-task-item" onclick="openEdit('${t.id}')"><div class="cal-task-dot" style="background:${col}"></div><span style="flex:1;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.name)}</span><span style="font-size:11px;color:var(--text3)">${{high:'高',mid:'中',low:'低'}[t.priority||'mid']}</span></div>`;}).join('');
+}
+document.getElementById('cal-prev').addEventListener('click',()=>{ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); });
+document.getElementById('cal-next').addEventListener('click',()=>{ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); });
+
+// ══════════════════════════════════════════
+//  Summary
+// ══════════════════════════════════════════
+function renderSummary() {
+  document.getElementById('summary-date-label').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('s-inprogress').textContent=tasks.filter(t=>!t.done&&!isOverdue(t)).length;
+  document.getElementById('s-done').textContent=tasks.filter(t=>t.done).length;
+  document.getElementById('s-overdue').textContent=tasks.filter(t=>isOverdue(t)).length;
+  document.getElementById('s-today').textContent=tasks.filter(t=>isDueToday(t)).length;
+  const todayTs=tasks.filter(t=>t.date===todayStr());
+  document.getElementById('today-preview-list').innerHTML=todayTs.length
+    ?todayTs.map(t=>{const col=t.done?'var(--green)':isOverdue(t)?'var(--red)':'var(--blue)';return`<div class="preview-task"><div class="preview-dot" style="background:${col}"></div><span style="flex:1;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.name)}</span>${t.done?'<span style="font-size:11px;color:var(--green)">✓</span>':''}</div>`;}).join('')
+    :'<div style="font-size:13px;color:var(--text3);padding:8px 0">今天没有到期任务</div>';
+  renderJournal();
+}
+
+// ══════════════════════════════════════════
+//  Journal (also auto-syncs)
+// ══════════════════════════════════════════
+function renderJournal() {
+  document.getElementById('journal-date-display').textContent=formatFull(journalDate);
+  document.getElementById('journal-text').value=LS.getJournals()[journalDate]||'';
+}
+function saveJournal() {
+  const j=LS.getJournals(), txt=document.getElementById('journal-text').value;
+  txt.trim()?j[journalDate]=txt:delete j[journalDate];
+  LS.saveJournals(j); scheduleAutoSync();
+}
+document.getElementById('journal-prev').addEventListener('click',()=>{ const d=new Date(journalDate);d.setDate(d.getDate()-1);journalDate=d.toISOString().slice(0,10);renderJournal(); });
+document.getElementById('journal-next').addEventListener('click',()=>{ const d=new Date(journalDate);d.setDate(d.getDate()+1);journalDate=d.toISOString().slice(0,10);renderJournal(); });
+document.getElementById('journal-save-btn').addEventListener('click',()=>{
+  saveJournal();
+  const h=document.getElementById('journal-saved-hint');h.classList.add('show');setTimeout(()=>h.classList.remove('show'),2000);
+});
+let jT;
+document.getElementById('journal-text').addEventListener('input',()=>{clearTimeout(jT);jT=setTimeout(saveJournal,1000);});
+
+// ══════════════════════════════════════════
+//  Settings Actions
+// ══════════════════════════════════════════
+function renderSettings() {
+  const ts=JSON.stringify(LS.getTasks()).length, js=JSON.stringify(LS.getJournals()).length;
+  const fmt=b=>b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(2)+'MB';
+  document.getElementById('data-size-info').textContent=`当前数据：任务 ${fmt(ts)}，日记 ${fmt(js)}，共 ${fmt(ts+js)}`;
+  updateCloudStatus();
+}
+
+document.getElementById('export-btn').addEventListener('click',()=>{
+  const data={tasks:LS.getTasks(),journals:LS.getJournals(),exportedAt:new Date().toISOString(),version:3};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`focus-backup-${todayStr()}.json`;a.click();URL.revokeObjectURL(url);
+  showToast('✓ 备份文件已导出');
+});
+document.getElementById('import-btn').addEventListener('click',()=>document.getElementById('import-input').click());
+document.getElementById('import-input').addEventListener('change',function(){
+  const file=this.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.tasks&&!data.journals){showToast('文件格式不正确');return;}
+      showConfirm('确认导入','导入将覆盖现有数据，确定继续吗？',()=>{
+        if(data.tasks)LS.saveTasks(data.tasks);if(data.journals)LS.saveJournals(data.journals);
+        tasks=LS.getTasks();render();renderSettings();scheduleAutoSync();
+        showToast(`✓ 导入完成：${(data.tasks||[]).length}个任务`);
+      });
+    }catch{showToast('文件解析失败');}this.value='';
+  };reader.readAsText(file);
+});
+document.getElementById('clear-done-btn').addEventListener('click',()=>{
+  const cnt=tasks.filter(t=>t.done).length;
+  if(!cnt){showToast('没有已完成的任务');return;}
+  showConfirm('清除已完成任务',`将删除 ${cnt} 个已完成任务，确定吗？`,()=>{
+    tasks=tasks.filter(t=>!t.done);saveAndSync();render();renderSettings();showToast(`✓ 已删除 ${cnt} 个任务`);
+  });
+});
+document.getElementById('reset-btn').addEventListener('click',()=>{
+  showConfirm('重置全部数据','将清空所有任务和日记，无法恢复，确定吗？',()=>{
+    LS.saveTasks([]);LS.saveJournals({});tasks=[];render();renderSettings();showToast('数据已重置');
+  });
+});
+
+// ══════════════════════════════════════════
+//  Page Switch
+// ══════════════════════════════════════════
+function switchPage(page) {
+  currentPage=page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+page).classList.add('active');
+  document.getElementById('fab').style.display=(page==='tasks'||page==='calendar')?'flex':'none';
+  if(page==='summary') renderSummary();
+  if(page==='calendar') renderCalendar();
+  if(page==='settings') renderSettings();
+}
+
+// ══════════════════════════════════════════
+//  Confirm
+// ══════════════════════════════════════════
+function showConfirm(title,msg,cb) {
+  pendingConfirmCb=cb;
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+document.getElementById('confirm-cancel').addEventListener('click',()=>{document.getElementById('confirm-overlay').classList.remove('open');pendingConfirmCb=null;});
+document.getElementById('confirm-ok').addEventListener('click',()=>{document.getElementById('confirm-overlay').classList.remove('open');if(pendingConfirmCb){pendingConfirmCb();pendingConfirmCb=null;}});
+
+// ══════════════════════════════════════════
+//  Toast
+// ══════════════════════════════════════════
+function showToast(msg) {
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ══════════════════════════════════════════
+//  PWA Manifest
+// ══════════════════════════════════════════
+(function(){
+  function makeIcon(size){
+    const c=document.createElement('canvas');c.width=c.height=size;
+    const ctx=c.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,'#1e1e26');g.addColorStop(1,'#0f0f13');
+    ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#a695ff';ctx.font=`800 ${size*.42}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('F',size/2,size/2+size*.03);
+    ctx.beginPath();ctx.arc(size*.62,size*.55,size*.06,0,Math.PI*2);ctx.fillStyle='#7c6af7';ctx.fill();
+    return c.toDataURL('image/png');
+  }
+  const m={name:'Focus — 个人任务',short_name:'Focus',description:'个人任务管理',start_url:'./',display:'standalone',background_color:'#0f0f13',theme_color:'#0f0f13',orientation:'portrait',icons:[{src:makeIcon(192),sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:makeIcon(512),sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
+  const blob=new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
+})();
+
+// ══════════════════════════════════════════
+//  Service Worker
+// ══════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  const sw=`const CACHE='focus-v3';
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  if(e.request.url.includes('api.github.com'))return;
+  e.respondWith(caches.match(e.request).then(r=>{
+    if(r)return r;
+    return fetch(e.request).then(res=>{
+      if(res.ok&&(e.request.url.includes('fonts.g')||e.request.url.includes('fonts.s'))){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}
+      return res;
+    }).catch(()=>new Response('',{status:503}));
+  }));
+});`;
+  const blob=new Blob([sw],{type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob),{scope:'./'}).catch(()=>{});
+}
+
+// ══════════════════════════════════════════
+//  Keyboard
+// ══════════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){closeSheet();document.getElementById('confirm-overlay').classList.remove('open');}
+  if((e.ctrlKey||e.metaKey)&&e.key==='n'&&currentPage==='tasks'){e.preventDefault();openAdd();}
+});
+
+// ══════════════════════════════════════════
+//  Init — load local data first, then sync
+// ══════════════════════════════════════════
+async function init() {
+  initCalendar();
+  render();
+  renderJournal();
+
+  // Hide loading screen
+  setTimeout(()=>{
+    document.getElementById('loading-screen').classList.add('hide');
+    setTimeout(()=>document.getElementById('loading-screen').remove(), 400);
+  }, 600);
+
+  // Auto-pull from cloud on startup if token exists
+  if (LS.getToken() && LS.getGistId()) {
+    setSyncState('syncing');
+    try {
+      await pullFromGist();
+      tasks = LS.getTasks();
+      render();
+      setSyncState('ok');
+    } catch(e) {
+      setSyncState('err');
+      // Silently fail — local data still usable
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
