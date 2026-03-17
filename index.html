@@ -53,6 +53,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* Task List */
 .list-wrap{flex:1;padding:0 16px 120px}
 .section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:16px 4px 8px}
+.section-label-collapsible{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;border-radius:var(--r-sm);padding:16px 8px 8px;transition:color .15s}
+.section-label-collapsible:hover{color:var(--text2)}
+.group-meta{display:flex;align-items:center;gap:4px;font-size:11px;letter-spacing:0;text-transform:none;font-weight:500}
 
 /* Task Card */
 .task-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:all .25s;cursor:pointer}
@@ -815,6 +818,14 @@ function sortTasks(arr) {
 // ══════════════════════════════════════════
 //  Render Tasks
 // ══════════════════════════════════════════
+// Track which groups are collapsed: key = group name, value = true if collapsed
+const collapsedGroups = {};
+
+function toggleGroup(g) {
+  collapsedGroups[g] = !collapsedGroups[g];
+  render();
+}
+
 function render() {
   const list = document.getElementById('task-list');
   const filtered = sortTasks(filterTasks(currentFilter));
@@ -831,7 +842,19 @@ function render() {
     else if (t.date) { const diff=getDeadline(t)-new Date(); g=diff<7*24*3600*1000?'本周':'未来'; }
     (groups[g]||(groups[g]=[])).push(t);
   });
-  list.innerHTML = order.filter(g=>groups[g]).map(g => '<div class="section-label">'+g+'</div>' + groups[g].map(renderCard).join('')).join('');
+  list.innerHTML = order.filter(g=>groups[g]).map(g => {
+    const collapsed = !!collapsedGroups[g];
+    const cnt = groups[g].length;
+    const arrow = collapsed
+      ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`
+      : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
+    const header = `<div class="section-label section-label-collapsible" onclick="toggleGroup('${g}')">
+      <span>${g}</span>
+      <span class="group-meta">${cnt} 项 ${arrow}</span>
+    </div>`;
+    const cards = collapsed ? '' : groups[g].map(renderCard).join('');
+    return header + cards;
+  }).join('');
 }
 
 function renderCard(t) {
@@ -864,15 +887,12 @@ function renderCard(t) {
     </button>
   </div>
 </div>
-<div class="card-progress">
+${(t.progress||0)>0?`<div class="card-progress">
   <div class="progress-row">
-    <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${t.progress||0}%"></div></div>
-    <span class="progress-label">${t.progress||0}%</span>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${t.progress}%"></div></div>
+    <span class="progress-label">${t.progress}%</span>
   </div>
-  <div class="progress-input-row" onclick="event.stopPropagation()">
-    <input type="range" class="progress-slider" min="0" max="100" value="${t.progress||0}" oninput="updateProgress('${t.id}',this.value,this)" style="flex:1">
-  </div>
-</div>
+</div>`:''}
 <div class="card-detail" id="detail-${t.id}">
   ${t.desc?`<div class="detail-desc">${esc(t.desc)}</div>`:''}
   <div><div id="comments-${t.id}">${cmH}</div>
@@ -891,7 +911,9 @@ function saveAndSync() { LS.saveTasks(tasks); scheduleAutoSync(); scheduleAllNot
 
 function toggleDone(id) {
   const t=tasks.find(x=>x.id===id); if(!t) return;
-  t.done=!t.done; if(t.done&&(t.progress||0)<100) t.progress=100;
+  t.done=!t.done;
+  if(t.done){ if((t.progress||0)<100) t.progress=100; t.doneAt=Date.now(); }
+  else { delete t.doneAt; }
   saveAndSync(); render(); showToast(t.done?'✓ 已标记完成':'↩ 已取消完成');
 }
 function toggleExpand(id) { const el=document.getElementById('detail-'+id); if(el) el.classList.toggle('open'); }
@@ -1037,14 +1059,35 @@ document.getElementById('cal-next').addEventListener('click',()=>{ calMonth++; i
 // ══════════════════════════════════════════
 function renderSummary() {
   document.getElementById('summary-date-label').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  document.getElementById('s-inprogress').textContent=tasks.filter(t=>!t.done&&!isOverdue(t)).length;
-  document.getElementById('s-done').textContent=tasks.filter(t=>t.done).length;
-  document.getElementById('s-overdue').textContent=tasks.filter(t=>isOverdue(t)).length;
-  document.getElementById('s-today').textContent=tasks.filter(t=>isDueToday(t)).length;
-  const todayTs=tasks.filter(t=>t.date===todayStr());
-  document.getElementById('today-preview-list').innerHTML=todayTs.length
-    ?todayTs.map(t=>{const col=t.done?'var(--green)':isOverdue(t)?'var(--red)':'var(--blue)';return`<div class="preview-task"><div class="preview-dot" style="background:${col}"></div><span style="flex:1;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.name)}</span>${t.done?'<span style="font-size:11px;color:var(--green)">✓</span>':''}</div>`;}).join('')
-    :'<div style="font-size:13px;color:var(--text3);padding:8px 0">今天没有到期任务</div>';
+
+  // 今日相关任务：截止日期是今天，或今天完成的
+  const today = todayStr();
+  const todayTasks = tasks.filter(t => t.date === today);
+  // 今天完成的（doneAt 在今天，不论截止日期）
+  const todayStart = new Date(today+'T00:00:00').getTime();
+  const todayEnd   = new Date(today+'T23:59:59').getTime();
+  const doneToday  = tasks.filter(t => t.done && t.doneAt && t.doneAt >= todayStart && t.doneAt <= todayEnd);
+
+  // 进行中：今日到期且未完成且未逾期
+  const inProgress = todayTasks.filter(t => !t.done && !isOverdue(t));
+  // 已完成：今天标记完成的任务
+  const doneCount  = doneToday.length;
+  // 已逾期：截止今天但已过时间且未完成
+  const overdueToday = todayTasks.filter(t => isOverdue(t));
+  // 今日到期（含已完成）
+  const dueTodayAll  = todayTasks.length;
+
+  document.getElementById('s-inprogress').textContent = inProgress.length;
+  document.getElementById('s-done').textContent       = doneCount;
+  document.getElementById('s-overdue').textContent    = overdueToday.length;
+  document.getElementById('s-today').textContent      = dueTodayAll;
+
+  document.getElementById('today-preview-list').innerHTML = todayTasks.length
+    ? todayTasks.map(t => {
+        const col = t.done?'var(--green)':isOverdue(t)?'var(--red)':'var(--blue)';
+        return `<div class="preview-task"><div class="preview-dot" style="background:${col}"></div><span style="flex:1;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.name)}</span>${t.done?'<span style="font-size:11px;color:var(--green)">✓</span>':''}</div>`;
+      }).join('')
+    : '<div style="font-size:13px;color:var(--text3);padding:8px 0">今天没有到期任务</div>';
   renderJournal();
 }
 
