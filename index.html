@@ -288,6 +288,28 @@ textarea.form-input{resize:vertical;min-height:80px}
 .loading-dot:nth-child(2){animation-delay:.2s}
 .loading-dot:nth-child(3){animation-delay:.4s}
 @keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* Gantt */
+.gantt-section{margin-top:20px;padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+.gantt-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.gantt-title span{font-size:11px;font-weight:500;color:var(--text3)}
+.gantt-head{display:flex;margin-bottom:6px;padding:0 0 6px 0;border-bottom:1px solid var(--border)}
+.gantt-head-name{flex-shrink:0;width:80px;font-size:10px;font-weight:600;color:var(--text3);padding:2px 8px;letter-spacing:0.5px}
+.gantt-head-days{flex:1;display:grid;grid-template-columns:repeat(7,1fr)}
+.gantt-head-day{font-size:10px;font-weight:600;color:var(--text3);text-align:center;padding:2px 0;border-left:1px solid var(--border)}
+.gantt-head-day:first-child{border-left:none}
+.gantt-head-day.today{color:var(--accent2)}
+.gantt-body{display:flex;flex-direction:column;gap:2px}
+.gantt-row{display:flex;align-items:center;cursor:pointer;border-radius:var(--r-sm);transition:background .12s;padding:3px 0}
+.gantt-row:hover{background:var(--bg3)}
+.gantt-row-name{flex-shrink:0;width:80px;font-size:12px;color:var(--text2);padding:2px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gantt-row-bar{flex:1;position:relative;height:22px}
+.gantt-bar-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);pointer-events:none}
+.gantt-bar-grid-line{border-left:1px solid var(--border);height:100%}
+.gantt-bar-grid-line:first-child{border-left:none}
+.gantt-bar-today{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:2;pointer-events:none;opacity:0.7}
+.gantt-bar{position:absolute;top:4px;height:14px;border-radius:3px;min-width:3px;z-index:1;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+.gantt-empty{padding:20px;text-align:center;font-size:13px;color:var(--text3)}
 </style>
 </head>
 <body>
@@ -336,6 +358,10 @@ textarea.form-input{resize:vertical;min-height:80px}
     <div class="cal-selected-tasks">
       <div class="cal-selected-date" id="cal-selected-date">选择日期查看任务</div>
       <div id="cal-task-list"></div>
+    </div>
+    <div class="gantt-section" id="gantt-section">
+      <div class="gantt-title">甘特图 <span>前后 3 天 · 点击任务可编辑</span></div>
+      <div id="gantt-wrap"></div>
     </div>
   </div>
 </div>
@@ -907,7 +933,7 @@ ${(t.progress||0)>0?`<div class="card-progress">
 // ══════════════════════════════════════════
 //  Task Actions (all trigger auto-sync)
 // ══════════════════════════════════════════
-function saveAndSync() { LS.saveTasks(tasks); scheduleAutoSync(); scheduleAllNotifications(); }
+function saveAndSync() { LS.saveTasks(tasks); scheduleAutoSync(); checkAndNotify(); }
 
 function toggleDone(id) {
   const t=tasks.find(x=>x.id===id); if(!t) return;
@@ -1043,6 +1069,71 @@ function renderCalendar() {
   grid.innerHTML=html; renderCalSelected();
 }
 function selectCalDate(ds){ calSelectedDate=ds; renderCalendar(); }
+function renderGantt(){
+  const wrap=document.getElementById('gantt-wrap');
+  if(!wrap)return;
+  const now=new Date();now.setHours(0,0,0,0);
+  const start=new Date(now);start.setDate(start.getDate()-3);
+  const end=new Date(now);end.setDate(end.getDate()+3);end.setHours(23,59,59,999);
+  const totalMs=end.getTime()-start.getTime();
+  if(totalMs<=0){wrap.innerHTML='';return}
+
+  // 7 day labels
+  const days=[];
+  for(let i=0;i<7;i++){const d=new Date(start);d.setDate(d.getDate()+i);days.push(d)}
+
+  // Filter: tasks whose [createdAt, due] intersects [start, end]
+  const visible=tasks.filter(t=>{
+    const dl=getDeadline(t);
+    if(!dl)return false;
+    const cr=t.createdAt?new Date(t.createdAt):dl;
+    return cr<=end&&dl>=start;
+  }).sort((a,b)=>{
+    const aS=a.createdAt?new Date(a.createdAt):new Date();
+    const bS=b.createdAt?new Date(b.createdAt):new Date();
+    return aS-bS;
+  });
+
+  if(!visible.length){wrap.innerHTML='<div class="gantt-empty">前后 3 天没有任务</div>';return}
+
+  const todayPos=((now.getTime()-start.getTime())/totalMs)*100;
+
+  let html='<div class="gantt-head"><div class="gantt-head-name">任务</div><div class="gantt-head-days">';
+  days.forEach(d=>{
+    const isT=d.toDateString()===now.toDateString();
+    html+='<div class="gantt-head-day'+(isT?' today':'')+'">'+(d.getMonth()+1)+'/'+d.getDate()+'</div>';
+  });
+  html+='</div></div><div class="gantt-body">';
+
+  visible.forEach(t=>{
+    const dl=getDeadline(t);
+    const cr=t.createdAt?new Date(t.createdAt):dl;
+    const bStart=Math.max(cr.getTime(),start.getTime());
+    const bEnd=Math.min(dl.getTime(),end.getTime());
+    const left=((bStart-start.getTime())/totalMs)*100;
+    const w=Math.max(((bEnd-bStart)/totalMs)*100,1.5);
+
+    let bc;
+    if(t.done)bc='var(--green)';
+    else if(isOverdue(t))bc='var(--red)';
+    else if(t.date===todayStr())bc='var(--amber)';
+    else bc='var(--blue)';
+
+    html+='<div class="gantt-row" onclick="openEdit(\''+t.id+'\')">';
+    html+='<div class="gantt-row-name">'+esc(t.name)+'</div>';
+    html+='<div class="gantt-row-bar">';
+    html+='<div class="gantt-bar-grid">';
+    for(let i=0;i<7;i++)html+='<div class="gantt-bar-grid-line"></div>';
+    html+='</div>';
+    html+='<div class="gantt-bar-today" style="left:'+todayPos+'%"></div>';
+    html+='<div class="gantt-bar" style="left:'+left+'%;width:'+w+'%;background:'+bc+';opacity:'+(t.done?0.5:1)+'"></div>';
+    html+='</div></div>';
+  });
+
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
 function renderCalSelected(){
   const sel=document.getElementById('cal-selected-date');
   const list=document.getElementById('cal-task-list');
@@ -1068,26 +1159,26 @@ function renderSummary() {
   const todayEnd   = new Date(today+'T23:59:59').getTime();
   const doneToday  = tasks.filter(t => t.done && t.doneAt && t.doneAt >= todayStart && t.doneAt <= todayEnd);
 
-  // 进行中：今日到期且未完成且未逾期
-  const inProgress = todayTasks.filter(t => !t.done && !isOverdue(t));
-  // 已完成：今天标记完成的任务
+  // 进行中：未完成且截止日期 >= 今天（含无截止日期）
+  const inProgress = tasks.filter(t => !t.done && (!t.date || t.date >= today));
+  // 已完成：今天标记完成的任务（不变）
   const doneCount  = doneToday.length;
-  // 已逾期：截止今天但已过时间且未完成
-  const overdueToday = todayTasks.filter(t => isOverdue(t));
-  // 今日到期（含已完成）
-  const dueTodayAll  = todayTasks.length;
+  // 已超期：未完成且已过截止时间
+  const overdueAll = tasks.filter(t => !t.done && isOverdue(t));
+  // 今日到期：仅今日到期且未完成
+  const dueTodayActive = todayTasks.filter(t => !t.done);
 
   document.getElementById('s-inprogress').textContent = inProgress.length;
   document.getElementById('s-done').textContent       = doneCount;
-  document.getElementById('s-overdue').textContent    = overdueToday.length;
-  document.getElementById('s-today').textContent      = dueTodayAll;
+  document.getElementById('s-overdue').textContent    = overdueAll.length;
+  document.getElementById('s-today').textContent      = dueTodayActive.length;
 
-  document.getElementById('today-preview-list').innerHTML = todayTasks.length
-    ? todayTasks.map(t => {
-        const col = t.done?'var(--green)':isOverdue(t)?'var(--red)':'var(--blue)';
-        return `<div class="preview-task"><div class="preview-dot" style="background:${col}"></div><span style="flex:1;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${esc(t.name)}</span>${t.done?'<span style="font-size:11px;color:var(--green)">✓</span>':''}</div>`;
+  document.getElementById('today-preview-list').innerHTML = dueTodayActive.length
+    ? dueTodayActive.map(t => {
+        const col = isOverdue(t)?'var(--red)':'var(--blue)';
+        return `<div class="preview-task"><div class="preview-dot" style="background:${col}"></div><span style="flex:1">${esc(t.name)}</span></div>`;
       }).join('')
-    : '<div style="font-size:13px;color:var(--text3);padding:8px 0">今天没有到期任务</div>';
+    : '<div style="font-size:13px;color:var(--text3);padding:8px 0">今天没有待完成的任务</div>';
   renderJournal();
 }
 
@@ -1169,7 +1260,7 @@ function switchPage(page) {
   document.getElementById('nav-'+page).classList.add('active');
   document.getElementById('fab').style.display=(page==='tasks'||page==='calendar')?'flex':'none';
   if(page==='summary') renderSummary();
-  if(page==='calendar') renderCalendar();
+  if(page==='calendar') { renderCalendar(); renderGantt(); }
   if(page==='settings') { renderSettings(); renderNotifSettings(); }
 }
 
@@ -1216,12 +1307,16 @@ function showToast(msg) {
 //  Service Worker
 // ══════════════════════════════════════════
 if ('serviceWorker' in navigator) {
-  const sw=`const CACHE='focus-v3';
-self.addEventListener('install',()=>self.skipWaiting());
+  const sw=`const CACHE='focus-v4';
+self.addEventListener('install',e=>{
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c=>c.add('./')));
+});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   if(e.request.url.includes('api.github.com'))return;
+  if(e.request.mode==='navigate'){e.respondWith(caches.match('./').then(r=>r||fetch(e.request)));return;}
   e.respondWith(caches.match(e.request).then(r=>{
     if(r)return r;
     return fetch(e.request).then(res=>{
@@ -1250,7 +1345,7 @@ async function requestNotifPermission() {
   if (result === 'granted') {
     showToast('✓ 通知权限已开启');
     document.getElementById('notif-perm-banner').style.display = 'none';
-    scheduleAllNotifications();
+    checkAndNotify();
   } else {
     showToast('通知权限被拒绝，请在系统设置中手动开启');
   }
@@ -1270,51 +1365,45 @@ function sendNotification(title, body, tag) {
   } catch(e) {}
 }
 
-function scheduleAllNotifications() {
+function checkAndNotify() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const cfg = NOTIF.getSettings();
   const fired = NOTIF.getFired();
-  const now = new Date();
   const todayKey = todayStr();
+  const now = new Date();
 
-  tasks.forEach(t => {
-    if (t.done || !t.date) return;
-    const deadline = getDeadline(t);
-    if (!deadline) return;
+  // ── Overdue check ──
+  if (cfg.overdue) {
+    tasks.forEach(t => {
+      if (t.done || !t.date) return;
+      const deadline = getDeadline(t);
+      if (!deadline || deadline > now) return;
+      const key = `overdue_${t.id}_${todayKey}`;
+      if (!fired[key]) {
+        sendNotification('🔴 任务已逾期', `${t.name} 超过截止时间未完成`, key);
+        fired[key] = Date.now();
+      }
+    });
+  }
 
-    // ── Deadline advance reminder ──
-    if (cfg.deadline) {
-      const advanceMs = (cfg.advanceMin || 60) * 60 * 1000;
+  // ── Deadline reminder ──
+  if (cfg.deadline) {
+    const advanceMs = (cfg.advanceMin || 60) * 60 * 1000;
+    tasks.forEach(t => {
+      if (t.done || !t.date) return;
+      const deadline = getDeadline(t);
+      if (!deadline) return;
       const remindAt = new Date(deadline.getTime() - advanceMs);
-      const fireKey = `deadline_${t.id}_${cfg.advanceMin}`;
-      if (!fired[fireKey] && remindAt > now) {
-        const delay = remindAt - now;
-        setTimeout(() => {
-          const task = tasks.find(x => x.id === t.id);
-          if (!task || task.done) return;
+      if (remindAt <= now && now < deadline) {
+        const key = `deadline_${t.id}_${cfg.advanceMin}_${todayKey}`;
+        if (!fired[key]) {
           const advLabel = cfg.advanceMin >= 1440 ? '明天到期' : cfg.advanceMin >= 60 ? `${cfg.advanceMin/60} 小时后到期` : `${cfg.advanceMin} 分钟后到期`;
-          sendNotification('⏰ 任务即将到期', `${task.name} — ${advLabel}`, fireKey);
-          const f = NOTIF.getFired(); f[fireKey] = Date.now(); NOTIF.saveFired(f);
-        }, delay);
-        // Mark as scheduled
-        const f = NOTIF.getFired(); f[fireKey + '_scheduled'] = remindAt.toISOString(); NOTIF.saveFired(f);
+          sendNotification('⏰ 任务即将到期', `${t.name} — ${advLabel}`, key);
+          fired[key] = Date.now();
+        }
       }
-    }
-
-    // ── Overdue warning ──
-    if (cfg.overdue) {
-      const overdueKey = `overdue_${t.id}_${todayKey}`;
-      if (!fired[overdueKey] && deadline > now) {
-        const delay = deadline - now;
-        setTimeout(() => {
-          const task = tasks.find(x => x.id === t.id);
-          if (!task || task.done) return;
-          sendNotification('🔴 任务已逾期', `${task.name} 超过截止时间未完成`, overdueKey);
-          const f = NOTIF.getFired(); f[overdueKey] = Date.now(); NOTIF.saveFired(f);
-        }, delay);
-      }
-    }
-  });
+    });
+  }
 
   // ── Daily digest ──
   if (cfg.daily && cfg.dailyTime) {
@@ -1322,21 +1411,21 @@ function scheduleAllNotifications() {
     if (!fired[dailyKey]) {
       const [h, m] = cfg.dailyTime.split(':').map(Number);
       const fireAt = new Date(); fireAt.setHours(h, m, 0, 0);
-      if (fireAt > now) {
-        const delay = fireAt - now;
-        setTimeout(() => {
-          const todayTasks = tasks.filter(t => t.date === todayStr() && !t.done);
-          const overdueTasks = tasks.filter(t => isOverdue(t));
-          if (todayTasks.length === 0 && overdueTasks.length === 0) return;
+      if (now >= fireAt) {
+        const todayDueTasks = tasks.filter(t => t.date === todayStr() && !t.done);
+        const overdueTasks = tasks.filter(t => isOverdue(t));
+        if (todayDueTasks.length > 0 || overdueTasks.length > 0) {
           let body = '';
-          if (todayTasks.length) body += `今日到期 ${todayTasks.length} 个`;
+          if (todayDueTasks.length) body += `今日到期 ${todayDueTasks.length} 个`;
           if (overdueTasks.length) body += (body ? '，' : '') + `逾期未完成 ${overdueTasks.length} 个`;
           sendNotification('📋 Focus 早报', body, dailyKey);
-          const f = NOTIF.getFired(); f[dailyKey] = Date.now(); NOTIF.saveFired(f);
-        }, delay);
+          fired[dailyKey] = Date.now();
+        }
       }
     }
   }
+
+  NOTIF.saveFired(fired);
 }
 
 function saveNotifSettings() {
@@ -1349,7 +1438,7 @@ function saveNotifSettings() {
   };
   NOTIF.saveSettings(cfg);
   // Re-schedule with new settings
-  scheduleAllNotifications();
+  checkAndNotify();
 }
 
 function testNotification() {
@@ -1403,8 +1492,16 @@ async function init() {
     setTimeout(()=>document.getElementById('loading-screen').remove(), 400);
   }, 600);
 
-  // Schedule notifications
-  scheduleAllNotifications();
+  // Check for notifications (works even if page was closed)
+  checkAndNotify();
+  // Re-check when user comes back to the tab
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      tasks = LS.getTasks();
+      render();
+      checkAndNotify();
+    }
+  });
   if (LS.getToken() && LS.getGistId()) {
     setSyncState('syncing');
     try {
