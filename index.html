@@ -9,8 +9,6 @@
 <meta name="theme-color" content="#0f0f13">
 <link rel="manifest" id="manifest-placeholder">
 <title>Focus — 个人任务</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#0f0f13; --bg2:#16161c; --bg3:#1e1e26; --bg4:#252530;
@@ -22,7 +20,23 @@
   --red:#f05252; --red-bg:rgba(240,82,82,0.12);
   --amber:#f0a952; --amber-bg:rgba(240,169,82,0.12);
   --r:14px; --r-sm:8px; --shadow:0 8px 32px rgba(0,0,0,0.4);
+  color-scheme:dark;
 }
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f4f9; --bg2:#ffffff; --bg3:#eef0f7; --bg4:#e3e5f0;
+  --border:rgba(28,28,52,0.09); --border2:rgba(28,28,52,0.18);
+  --text:#262633; --text2:#63637d; --text3:#a2a2bd;
+  --accent:#6f5af4; --accent2:#5f49d6;
+  --blue:#2f7fe0; --blue-bg:rgba(61,142,240,0.14);
+  --green:#1f9e6b; --green-bg:rgba(62,207,142,0.16);
+  --red:#e04a4a; --red-bg:rgba(240,82,82,0.12);
+  --amber:#d78e26; --amber-bg:rgba(240,169,82,0.16);
+  --shadow:0 8px 32px rgba(60,60,110,0.14);
+}
+[data-theme="light"] .priority-high{background:rgba(224,74,74,0.14);color:#cc4747}
+[data-theme="light"] .priority-mid{background:rgba(215,142,38,0.16);color:#b07518}
+[data-theme="light"] .priority-low{background:rgba(31,158,107,0.14);color:#1a7f55}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
@@ -31,8 +45,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* Header */
 .header{padding:52px 20px 0;position:sticky;top:0;z-index:10;background:linear-gradient(to bottom,var(--bg) 80%,transparent)}
 .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.header-left{display:flex;align-items:center;gap:10px}
 .logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px}
 .logo span{color:var(--accent2)}
+.theme-toggle-btn{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.theme-toggle-btn:hover{border-color:var(--border2);color:var(--text)}
+.theme-toggle-btn:active{transform:scale(.88) rotate(-15deg)}
+.theme-toggle-btn svg{width:15px;height:15px}
+[data-theme="dark"] .theme-toggle-btn .icon-moon{display:none}
+[data-theme="light"] .theme-toggle-btn .icon-sun{display:none}
 .header-right{display:flex;align-items:center;gap:8px}
 .stat-chip{font-size:11px;font-weight:500;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;transition:all .2s}
 .stat-chip.active{color:var(--accent2);border-color:rgba(124,106,247,0.3);background:rgba(124,106,247,0.08)}
@@ -51,11 +72,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .tab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(124,106,247,0.35)}
 
 /* Task List */
-.list-wrap{flex:1;padding:0 16px 120px}
-.section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:16px 4px 8px}
-.section-label-collapsible{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;border-radius:var(--r-sm);padding:16px 8px 8px;transition:color .15s}
-.section-label-collapsible:hover{color:var(--text2)}
-.group-meta{display:flex;align-items:center;gap:4px;font-size:11px;letter-spacing:0;text-transform:none;font-weight:500}
+.list-wrap{flex:1;padding:0 16px 170px}
+.section-label{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:var(--text2);padding:16px 4px 8px}
+.section-label-collapsible{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;border-radius:10px;padding:11px 14px;margin:14px 0 8px;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--text3);transition:all .2s}
+.section-label-collapsible:hover{color:var(--text);background:var(--bg4);border-color:var(--border2)}
+.section-label-collapsible[data-group="已超期"]{border-left-color:var(--red)}
+.section-label-collapsible[data-group="今天"]{border-left-color:var(--amber)}
+.section-label-collapsible[data-group="本周"]{border-left-color:var(--blue)}
+.section-label-collapsible[data-group="未来"]{border-left-color:var(--accent)}
+.section-label-collapsible[data-group="已完成"]{border-left-color:var(--green)}
+.group-meta{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--text3)}
 
 /* Task Card */
 .task-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:all .25s;cursor:pointer}
@@ -91,7 +117,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .card-progress{padding:0 14px 12px}
 .progress-row{display:flex;align-items:center;gap:8px}
 .progress-bar-wrap{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
-.progress-bar-fill{height:100%;border-radius:2px;transition:width .3s;background:var(--accent)}
+.progress-bar-fill{height:100%;border-radius:2px;transition:width .3s;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .progress-label{font-size:11px;color:var(--text3);min-width:28px;text-align:right}
 .progress-input-row{display:flex;align-items:center;gap:8px;margin-top:6px}
 .progress-slider{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg4);outline:none}
@@ -111,10 +137,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .card-timestamps{font-size:11px;color:var(--text3);margin-top:8px}
 
 /* FAB */
-.fab{position:fixed;bottom:28px;right:50%;transform:translateX(50%) translateX(calc(480px/2 - 28px));width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(124,106,247,0.5);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:50}
+.fab{position:fixed;bottom:100px;right:50%;transform:translateX(50%) translateX(calc(480px/2 - 28px));width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;cursor:pointer;box-shadow:0 4px 20px rgba(124,106,247,0.5);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:50}
 .fab:hover{transform:translateX(50%) translateX(calc(480px/2 - 28px)) scale(1.08)}
 .fab:active{transform:translateX(50%) translateX(calc(480px/2 - 28px)) scale(0.95)}
-@media(max-width:480px){.fab{right:20px;transform:none}.fab:hover{transform:scale(1.08)}.fab:active{transform:scale(0.95)}}
+@media(max-width:480px){.fab{right:20px;bottom:100px;transform:none}.fab:hover{transform:scale(1.08)}.fab:active{transform:scale(0.95)}}
 
 /* Bottom Nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:40;background:linear-gradient(to top,var(--bg) 70%,transparent);padding:12px 16px 24px;display:flex;justify-content:space-around;align-items:center}
@@ -156,7 +182,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 .page.active{display:block}
 
 /* Calendar */
-.cal-wrap{padding:52px 20px 120px}
+.cal-wrap{padding:52px 20px 170px}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .cal-header h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
 .cal-nav-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text2);font-size:18px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all .2s}
@@ -178,7 +204,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 .cal-task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* Summary */
-.summary-wrap{padding:52px 20px 120px}
+.summary-wrap{padding:52px 20px 170px}
 .summary-header{margin-bottom:20px}
 .summary-header h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px}
 .summary-header p{font-size:13px;color:var(--text3)}
@@ -206,7 +232,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 .journal-saved-hint.show{opacity:1}
 
 /* Settings */
-.settings-wrap{padding:52px 20px 120px}
+.settings-wrap{padding:52px 20px 170px}
 .settings-wrap>h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:24px}
 .settings-section{margin-bottom:28px}
 .settings-section>h3{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
@@ -221,6 +247,11 @@ textarea.form-input{resize:vertical;min-height:80px}
 .settings-btn.green{background:var(--green-bg);border-color:rgba(62,207,142,0.3);color:var(--green)}
 .settings-btn.danger{background:var(--red-bg);border-color:rgba(240,82,82,0.3);color:var(--red)}
 .data-size-info{font-size:12px;color:var(--text3);padding:12px 16px}
+
+/* Theme */
+.theme-row{display:flex;gap:8px;flex-wrap:wrap}
+.theme-chip{font-size:12px;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .2s}
+.theme-chip.selected{background:rgba(124,106,247,0.15);border-color:rgba(124,106,247,0.4);color:var(--accent2)}
 
 /* Cloud setup card */
 .cloud-setup{background:linear-gradient(135deg,rgba(61,142,240,0.1),rgba(62,207,142,0.05));border:1px solid rgba(61,142,240,0.2);border-radius:var(--r);padding:16px;margin-bottom:16px}
@@ -245,13 +276,13 @@ textarea.form-input{resize:vertical;min-height:80px}
 .empty-state p{font-size:14px}
 
 /* Toast */
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:13px;color:var(--text);z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast{position:fixed;bottom:170px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:13px;color:var(--text);z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Confirm */
 .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px);padding:20px}
 .confirm-overlay.open{opacity:1;pointer-events:all}
-.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;max-width:320px;width:100%;text-align:center}
+.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;max-width:320px;width:100%;text-align:center;transform:scale(.94);transition:transform .22s cubic-bezier(.2,.7,.3,1.4)}
 .confirm-box h3{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px}
 .confirm-box p{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5}
 .confirm-btns{display:flex;gap:10px}
@@ -281,7 +312,7 @@ textarea.form-input{resize:vertical;min-height:80px}
 /* Loading screen */
 .loading-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
 .loading-screen.hide{opacity:0;pointer-events:none}
-.loading-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800}
+.loading-logo{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;animation:loadIn .5s ease both}
 .loading-logo span{color:var(--accent2)}
 .loading-dots{display:flex;gap:6px}
 .loading-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
@@ -310,7 +341,57 @@ textarea.form-input{resize:vertical;min-height:80px}
 .gantt-bar-today{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:2;pointer-events:none;opacity:0.7}
 .gantt-bar{position:absolute;top:4px;height:14px;border-radius:3px;min-width:3px;z-index:1;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
 .gantt-empty{padding:20px;text-align:center;font-size:13px;color:var(--text3)}
+
+/* ═══ Animations & polish (v4.1) ═══ */
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes newPop{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:none}}
+@keyframes cardOut{to{opacity:0;transform:scale(.95) translateY(6px)}}
+@keyframes checkPop{0%{transform:scale(1)}45%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes doneFlash{0%{box-shadow:0 0 0 0 rgba(62,207,142,.4)}100%{box-shadow:0 0 0 14px rgba(62,207,142,0)}}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes detailIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes fabIn{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes loadIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.page.active{animation:pageIn .28s ease}
+.anim-enter .task-card{animation:cardIn .32s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--d,0ms)}
+.anim-enter .section-label{animation:cardIn .26s ease both;animation-delay:var(--d,0ms)}
+.card-new{animation:newPop .4s cubic-bezier(.34,1.56,.64,1) both}
+.card-leave{animation:cardOut .2s ease both}
+.just-done{animation:doneFlash .55s ease}
+.just-done .check-btn{animation:checkPop .4s cubic-bezier(.34,1.56,.64,1)}
+.card-detail.open{animation:detailIn .25s ease}
+.confirm-overlay.open .confirm-box{transform:scale(1)}
+.empty-state .icon{animation:floatY 2.6s ease-in-out infinite}
+.fab{animation:fabIn .35s cubic-bezier(.34,1.56,.64,1) both}
+
+/* 按压反馈 */
+.tab:active{transform:scale(.94)}
+.priority-btn:active,.settings-btn:active,.btn-primary:active,.cal-nav-btn:active{transform:scale(.97)}
+.nav-btn:active{transform:scale(.92)}
+.check-btn:active{transform:scale(.8)}
+
+/* 桌面端氛围光晕 */
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(520px 340px at 50% -80px, rgba(124,106,247,.10), transparent 70%),
+             radial-gradient(640px 420px at 88% 112%, rgba(61,142,240,.07), transparent 70%)}
+body{transition:background .3s}
+
+/* 毛玻璃导航(浏览器不支持时自动回退为渐变) */
+@supports (background:color-mix(in srgb,red,blue)){
+  .header{background:color-mix(in srgb,var(--bg) 72%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .bottom-nav{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+}
+
+/* 深色模式下 logo 微光 */
+[data-theme="dark"] .logo{text-shadow:0 0 28px rgba(166,149,255,.3)}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
+<script>
+(function(){try{var t=localStorage.getItem('focus_theme')||'auto';var d=t==='dark'||(t==='auto'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?'#0f0f13':'#f4f4f9';}catch(e){document.documentElement.dataset.theme='dark';}})();
+</script>
 </head>
 <body>
 
@@ -326,7 +407,13 @@ textarea.form-input{resize:vertical;min-height:80px}
 <div id="page-tasks" class="page active">
   <div class="header">
     <div class="header-top">
-      <div class="logo">Focus<span>.</span></div>
+      <div class="header-left">
+        <div class="logo">Focus<span>.</span></div>
+        <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="quickToggleTheme()" title="切换明暗主题">
+          <svg class="icon-sun" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>
+          <svg class="icon-moon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
       <div class="header-right">
         <div class="stat-chip" id="stat-today">今日 0</div>
         <div class="stat-chip" id="stat-done">完成 0</div>
@@ -427,6 +514,17 @@ textarea.form-input{resize:vertical;min-height:80px}
     </div>
 
     <div class="settings-section">
+      <h3>外观</h3>
+      <div class="settings-card" style="padding:14px 16px">
+        <div class="theme-row">
+          <span class="theme-chip" data-theme="auto" onclick="setTheme('auto')">🌗 跟随系统</span>
+          <span class="theme-chip" data-theme="light" onclick="setTheme('light')">☀️ 浅色</span>
+          <span class="theme-chip" data-theme="dark" onclick="setTheme('dark')">🌙 深色</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h3>数据管理</h3>
       <div class="settings-card">
         <div class="settings-row">
@@ -509,7 +607,7 @@ textarea.form-input{resize:vertical;min-height:80px}
       </div>
     </div>
 
-    <div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">Focus v4.0 · Token 仅存储在本设备</div>
+    <div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">Focus v4.1 · Token 仅存储在本设备</div>
   </div>
 </div>
 
@@ -654,12 +752,14 @@ async function pullFromGist() {
   const res = await gistRequest('GET', '/gists/' + gistId);
   const file = res.files[GIST_FILENAME];
   if (!file) throw new Error('Gist 中没有找到数据文件');
-  const data = JSON.parse(file.content);
-  if (data.tasks) LS.saveTasks(data.tasks);
-  if (data.journals) LS.saveJournals(data.journals);
+  let raw;
+  try { raw = JSON.parse(file.content); } catch { throw new Error('云端数据不是有效的 JSON'); }
+  const s = sanitizeData(raw);
+  LS.saveTasks(s.tasks);
+  LS.saveJournals(s.journals);
   const now = new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   LS.saveLastSync(now);
-  return data;
+  return s;
 }
 
 async function findExistingGist() {
@@ -757,34 +857,56 @@ async function saveToken() {
   const token = document.getElementById('token-input').value.trim();
   if (!token) { showToast('请输入 Token'); return; }
   if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    showToast('Token 格式不对，应以 ghp_ 开头'); return;
+    showToast('Token 格式不对，应以 ghp_ 或 github_pat_ 开头'); return;
   }
   LS.saveToken(token);
   const btn = document.getElementById('token-save-btn');
   btn.textContent = '连接中…'; btn.disabled = true;
+  const resetBtn = () => { btn.textContent = '连接并同步'; btn.disabled = false; };
+  const abort = (msg) => {
+    showToast(msg);
+    LS.saveToken(''); LS.saveGistId('');
+    updateCloudStatus(); setSyncState('err');
+  };
+
+  async function connect(existing) {
+    try {
+      if (existing) {
+        const data = await pullFromGist();
+        tasks = LS.getTasks();
+        render();
+        showToast(`✓ 已连接，找到 ${(data.tasks || []).length} 个任务`);
+      } else {
+        await pushToGist();
+        showToast('✓ 已连接，数据已上传');
+      }
+      setSyncState('ok');
+      updateCloudStatus();
+    } catch (e) {
+      showToast('连接失败：' + e.message);
+      LS.saveToken(''); LS.saveGistId('');
+      updateCloudStatus(); setSyncState('err');
+    } finally { resetBtn(); }
+  }
 
   try {
     // Verify token works
     await gistRequest('GET', '/user');
     // Look for existing gist
     const existing = await findExistingGist();
-    if (existing) {
-      // Pull existing data
-      const data = await pullFromGist();
-      tasks = LS.getTasks();
-      render();
-      showToast(`✓ 已连接，找到 ${(data.tasks || []).length} 个任务`);
-    } else {
-      // First time: push current data
-      await pushToGist();
-      showToast('✓ 已连接，数据已上传');
+    if (existing && tasks.length > 0) {
+      // 云端已有数据且本地也有未同步任务：先确认再覆盖，避免静默丢数据
+      resetBtn();
+      showConfirm('发现云端数据',
+        `云端已有 Focus 数据。连接后将以云端为准，本地 ${tasks.length} 个任务会被覆盖，确定继续吗？`,
+        () => connect(existing),
+        () => abort('已取消连接，本地数据未改动'));
+      return;
     }
-    updateCloudStatus();
+    await connect(existing);
   } catch (e) {
-    showToast('连接失败：' + e.message);
-    LS.saveToken('');
-  } finally {
-    btn.textContent = '连接并同步'; btn.disabled = false;
+    abort('连接失败：' + e.message);
+    resetBtn();
   }
 }
 
@@ -799,12 +921,13 @@ function toggleTokenVisibility() {
 let tasks = LS.getTasks();
 let currentFilter = 'all', editingId = null, selectedPriority = 'mid', currentPage = 'tasks';
 let journalDate = todayStr(), calYear, calMonth, calSelectedDate;
-let pendingConfirmCb = null;
+let pendingConfirmCb = null, pendingCancelCb = null;
 
 // ══════════════════════════════════════════
 //  Helpers
 // ══════════════════════════════════════════
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function todayStr() { return dateStr(new Date()); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>'); }
 function getDeadline(t) { if (!t.date) return null; return t.time ? new Date(t.date+'T'+t.time) : new Date(t.date+'T23:59:59'); }
@@ -814,11 +937,48 @@ function isDueSoon(t) { if (t.done||!t.date) return false; const d=getDeadline(t
 function formatDate(ds, ts) {
   if (!ds) return null;
   const tom = new Date(); tom.setDate(tom.getDate()+1);
-  const tomStr = tom.toISOString().slice(0,10);
-  let l = ds===todayStr()?'今天':ds===tomStr?'明天':(()=>{const d=new Date(ds);return`${d.getMonth()+1}月${d.getDate()}日`})();
-  return ts ? l+' '+ts : l;
+  const tomStr = dateStr(tom);
+  let l = ds===todayStr()?'今天':ds===tomStr?'明天':(()=>{const d=new Date(ds+'T12:00:00');return`${d.getMonth()+1}月${d.getDate()}日`})();
+  return ts ? l+' '+esc(ts) : l;
 }
-function formatFull(s) { if(!s)return''; const d=new Date(s); return`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`; }
+function formatFull(s) { if(!s)return''; const d=new Date(s+'T12:00:00'); return`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`; }
+
+// 数据清洗：导入 / 云端恢复的数据先过一遍，防止坏数据让应用白屏
+function sanitizeTasks(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(t => t && typeof t === 'object' && typeof t.name === 'string' && t.name.trim())
+    .map(t => {
+      const c = {
+        id: (typeof t.id === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(t.id)) ? t.id : uid(),
+        name: String(t.name).slice(0, 100),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : '',
+        time: /^\d{2}:\d{2}$/.test(t.time) ? t.time : '',
+        desc: typeof t.desc === 'string' ? t.desc.slice(0, 2000) : '',
+        priority: ['high','mid','low'].includes(t.priority) ? t.priority : 'mid',
+        progress: Math.max(0, Math.min(100, parseInt(t.progress) || 0)),
+        done: !!t.done,
+        comments: Array.isArray(t.comments)
+          ? t.comments.filter(c => c && typeof c.text === 'string' && c.text)
+              .map(c => ({ text: String(c.text).slice(0, 200), ts: Number(c.ts) || Date.now() }))
+          : [],
+        createdAt: Number(t.createdAt) || Date.now(),
+      };
+      if (t.doneAt) c.doneAt = Number(t.doneAt);
+      if (t.updatedAt) c.updatedAt = Number(t.updatedAt);
+      return c;
+    });
+}
+function sanitizeJournals(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const j = {};
+  Object.keys(raw).forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof raw[k] === 'string') j[k] = raw[k]; });
+  return j;
+}
+function sanitizeData(data) {
+  const d = (data && typeof data === 'object') ? data : {};
+  return { tasks: sanitizeTasks(d.tasks), journals: sanitizeJournals(d.journals) };
+}
 
 // ══════════════════════════════════════════
 //  Filter / Sort
@@ -846,6 +1006,7 @@ function sortTasks(arr) {
 // ══════════════════════════════════════════
 // Track which groups are collapsed: key = group name, value = true if collapsed
 const collapsedGroups = {};
+let animateList = true;   // 首次渲染/切筛选/切页面时播放卡片入场动画
 
 function toggleGroup(g) {
   collapsedGroups[g] = !collapsedGroups[g];
@@ -860,7 +1021,7 @@ function render() {
   const s1=document.getElementById('stat-today'),s2=document.getElementById('stat-done');
   s1.textContent=`今日 ${todayCnt}`; s2.textContent=`完成 ${doneCnt}`;
   s1.classList.toggle('active', todayCnt>0);
-  if (!filtered.length) { list.innerHTML='<div class="empty-state"><div class="icon">✦</div><p>这里空空如也<br>点右下角添加任务</p></div>'; return; }
+  if (!filtered.length) { list.innerHTML='<div class="empty-state" style="animation:cardIn .3s ease both"><div class="icon">✦</div><p>这里空空如也<br>点右下角添加任务</p></div>'; animateList=false; return; }
   const groups={}, order=['已超期','今天','本周','未来','无期限','已完成'];
   filtered.forEach(t => {
     let g='无期限';
@@ -868,22 +1029,29 @@ function render() {
     else if (t.date) { const diff=getDeadline(t)-new Date(); g=diff<7*24*3600*1000?'本周':'未来'; }
     (groups[g]||(groups[g]=[])).push(t);
   });
+  let gi = 0;
   list.innerHTML = order.filter(g=>groups[g]).map(g => {
     const collapsed = !!collapsedGroups[g];
     const cnt = groups[g].length;
+    const base = Math.min(gi*40, 200); gi++;
     const arrow = collapsed
       ? `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`
       : `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
-    const header = `<div class="section-label section-label-collapsible" onclick="toggleGroup('${g}')">
+    const header = `<div class="section-label section-label-collapsible" data-group="${g}" style="--d:${base}ms" onclick="toggleGroup('${g}')">
       <span>${g}</span>
       <span class="group-meta">${cnt} 项 ${arrow}</span>
     </div>`;
-    const cards = collapsed ? '' : groups[g].map(renderCard).join('');
+    const cards = collapsed ? '' : groups[g].map((t,i)=>renderCard(t, Math.min(base+i*35, 420))).join('');
     return header + cards;
   }).join('');
+  if (animateList) {
+    list.classList.add('anim-enter');
+    setTimeout(()=>list.classList.remove('anim-enter'), 700);
+    animateList = false;
+  }
 }
 
-function renderCard(t) {
+function renderCard(t, delay) {
   const over=isOverdue(t),tod=isDueToday(t),soon=isDueSoon(t);
   const cls='task-card'+(t.done?' done done-card':over?' overdue':tod?' due-today':' in-progress');
   const pL={high:'高',mid:'中',low:'低'}[t.priority||'mid'];
@@ -893,7 +1061,7 @@ function renderCard(t) {
   const cr=new Date(t.createdAt).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
   const cms=(t.comments||[]);
   const cmH=cms.map(c=>`<div class="comment-item"><div class="comment-meta">${new Date(c.ts).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>${esc(c.text)}</div>`).join('');
-  return `<div class="${cls}" id="card-${t.id}">
+  return `<div class="${cls}" id="card-${t.id}" style="--d:${delay||0}ms">
 <div class="card-main">
   <button class="check-btn" onclick="event.stopPropagation();toggleDone('${t.id}')">
     <svg class="check-icon" width="12" height="12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 10 10 2"/></svg>
@@ -940,7 +1108,9 @@ function toggleDone(id) {
   t.done=!t.done;
   if(t.done){ if((t.progress||0)<100) t.progress=100; t.doneAt=Date.now(); }
   else { delete t.doneAt; }
-  saveAndSync(); render(); showToast(t.done?'✓ 已标记完成':'↩ 已取消完成');
+  saveAndSync(); render();
+  if(t.done){ const el=document.getElementById('card-'+id); if(el) el.classList.add('just-done'); }
+  showToast(t.done?'✓ 已标记完成':'↩ 已取消完成');
 }
 function toggleExpand(id) { const el=document.getElementById('detail-'+id); if(el) el.classList.toggle('open'); }
 function updateProgress(id, val, slider) {
@@ -969,7 +1139,7 @@ document.getElementById('tabs').addEventListener('click', e => {
   const btn=e.target.closest('.tab'); if(!btn) return;
   currentFilter=btn.dataset.filter;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active'); render();
+  btn.classList.add('active'); animateList=true; render();
 });
 
 // ══════════════════════════════════════════
@@ -1017,20 +1187,28 @@ document.getElementById('f-progress').addEventListener('input',function(){ docum
 document.getElementById('submit-task-btn').addEventListener('click', () => {
   const name=document.getElementById('f-name').value.trim();
   if(!name){ document.getElementById('f-name').focus(); showToast('请输入任务名称'); return; }
+  let newId=null;
   if (editingId) {
     const t=tasks.find(x=>x.id===editingId);
     Object.assign(t,{name,date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,desc:document.getElementById('f-desc').value.trim(),priority:selectedPriority,progress:parseInt(document.getElementById('f-progress').value),updatedAt:Date.now()});
   } else {
-    tasks.unshift({id:uid(),name,date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,desc:document.getElementById('f-desc').value.trim(),priority:selectedPriority,progress:parseInt(document.getElementById('f-progress').value),done:false,comments:[],createdAt:Date.now()});
+    const nt={id:uid(),name,date:document.getElementById('f-date').value,time:document.getElementById('f-time').value,desc:document.getElementById('f-desc').value.trim(),priority:selectedPriority,progress:parseInt(document.getElementById('f-progress').value),done:false,comments:[],createdAt:Date.now()};
+    tasks.unshift(nt); newId=nt.id;
   }
   saveAndSync(); closeSheet(); render();
+  if(newId){
+    const el=document.getElementById('card-'+newId);
+    if(el){ el.classList.add('card-new'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  }
   showToast(editingId?'✓ 已保存':'✓ 任务已创建');
 });
 
 document.getElementById('delete-task-btn').addEventListener('click', () => {
   const id=editingId; closeSheet();
   setTimeout(()=>showConfirm('确认删除','删除后无法恢复，确定吗？',()=>{
-    tasks=tasks.filter(x=>x.id!==id); saveAndSync(); render(); showToast('任务已删除');
+    const el=document.getElementById('card-'+id);
+    const doDelete=()=>{ tasks=tasks.filter(x=>x.id!==id); saveAndSync(); render(); showToast('任务已删除'); };
+    if(el){ el.classList.add('card-leave'); setTimeout(doDelete,200); } else doDelete();
   }),200);
 });
 
@@ -1194,8 +1372,8 @@ function saveJournal() {
   txt.trim()?j[journalDate]=txt:delete j[journalDate];
   LS.saveJournals(j); scheduleAutoSync();
 }
-document.getElementById('journal-prev').addEventListener('click',()=>{ const d=new Date(journalDate);d.setDate(d.getDate()-1);journalDate=d.toISOString().slice(0,10);renderJournal(); });
-document.getElementById('journal-next').addEventListener('click',()=>{ const d=new Date(journalDate);d.setDate(d.getDate()+1);journalDate=d.toISOString().slice(0,10);renderJournal(); });
+document.getElementById('journal-prev').addEventListener('click',()=>{ const d=new Date(journalDate+'T12:00:00');d.setDate(d.getDate()-1);journalDate=dateStr(d);renderJournal(); });
+document.getElementById('journal-next').addEventListener('click',()=>{ const d=new Date(journalDate+'T12:00:00');d.setDate(d.getDate()+1);journalDate=dateStr(d);renderJournal(); });
 document.getElementById('journal-save-btn').addEventListener('click',()=>{
   saveJournal();
   const h=document.getElementById('journal-saved-hint');h.classList.add('show');setTimeout(()=>h.classList.remove('show'),2000);
@@ -1226,12 +1404,13 @@ document.getElementById('import-input').addEventListener('change',function(){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const data=JSON.parse(e.target.result);
-      if(!data.tasks&&!data.journals){showToast('文件格式不正确');return;}
-      showConfirm('确认导入','导入将覆盖现有数据，确定继续吗？',()=>{
-        if(data.tasks)LS.saveTasks(data.tasks);if(data.journals)LS.saveJournals(data.journals);
+      const raw=JSON.parse(e.target.result);
+      if(!raw||typeof raw!=='object'||(!Array.isArray(raw.tasks)&&!raw.journals)){showToast('文件格式不正确');return;}
+      const s=sanitizeData(raw);
+      showConfirm('确认导入',`导入将覆盖现有数据（识别到 ${s.tasks.length} 个任务），确定继续吗？`,()=>{
+        LS.saveTasks(s.tasks);LS.saveJournals(s.journals);
         tasks=LS.getTasks();render();renderSettings();scheduleAutoSync();
-        showToast(`✓ 导入完成：${(data.tasks||[]).length}个任务`);
+        showToast(`✓ 导入完成：${s.tasks.length}个任务`);
       });
     }catch{showToast('文件解析失败');}this.value='';
   };reader.readAsText(file);
@@ -1250,6 +1429,34 @@ document.getElementById('reset-btn').addEventListener('click',()=>{
 });
 
 // ══════════════════════════════════════════
+//  Theme (auto / light / dark)
+// ══════════════════════════════════════════
+function applyTheme() {
+  const pref = localStorage.getItem('focus_theme') || 'auto';
+  const dark = pref === 'dark' || (pref === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#0f0f13' : '#f4f4f9';
+  refreshManifest();
+}
+function setTheme(pref) {
+  localStorage.setItem('focus_theme', pref);
+  applyTheme();
+  renderThemeChips();
+}
+function quickToggleTheme() {
+  const cur = localStorage.getItem('focus_theme') || 'auto';
+  const resolvedDark = cur === 'dark' || (cur === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  setTheme(resolvedDark ? 'light' : 'dark');
+}
+function renderThemeChips() {
+  const cur = localStorage.getItem('focus_theme') || 'auto';
+  document.querySelectorAll('.theme-chip').forEach(c => c.classList.toggle('selected', c.dataset.theme === cur));
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if ((localStorage.getItem('focus_theme') || 'auto') === 'auto') applyTheme();
+});
+
+// ══════════════════════════════════════════
 //  Page Switch
 // ══════════════════════════════════════════
 function switchPage(page) {
@@ -1259,22 +1466,24 @@ function switchPage(page) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('nav-'+page).classList.add('active');
   document.getElementById('fab').style.display=(page==='tasks'||page==='calendar')?'flex':'none';
+  if(page==='tasks'){ animateList=true; render(); }
   if(page==='summary') renderSummary();
   if(page==='calendar') { renderCalendar(); renderGantt(); }
-  if(page==='settings') { renderSettings(); renderNotifSettings(); }
+  if(page==='settings') { renderSettings(); renderNotifSettings(); renderThemeChips(); }
 }
 
 // ══════════════════════════════════════════
 //  Confirm
 // ══════════════════════════════════════════
-function showConfirm(title,msg,cb) {
+function showConfirm(title,msg,cb,cancelCb) {
   pendingConfirmCb=cb;
+  pendingCancelCb=cancelCb||null;
   document.getElementById('confirm-title').textContent=title;
   document.getElementById('confirm-msg').textContent=msg;
   document.getElementById('confirm-overlay').classList.add('open');
 }
-document.getElementById('confirm-cancel').addEventListener('click',()=>{document.getElementById('confirm-overlay').classList.remove('open');pendingConfirmCb=null;});
-document.getElementById('confirm-ok').addEventListener('click',()=>{document.getElementById('confirm-overlay').classList.remove('open');if(pendingConfirmCb){pendingConfirmCb();pendingConfirmCb=null;}});
+document.getElementById('confirm-cancel').addEventListener('click',()=>{document.getElementById('confirm-overlay').classList.remove('open');pendingConfirmCb=null;if(pendingCancelCb){const cb=pendingCancelCb;pendingCancelCb=null;cb();}});
+document.getElementById('confirm-ok').addEventListener('click',()=>{const cb=pendingConfirmCb;document.getElementById('confirm-overlay').classList.remove('open');pendingConfirmCb=null;pendingCancelCb=null;if(cb)cb();});
 
 // ══════════════════════════════════════════
 //  Toast
@@ -1287,46 +1496,35 @@ function showToast(msg) {
 // ══════════════════════════════════════════
 //  PWA Manifest
 // ══════════════════════════════════════════
-(function(){
-  function makeIcon(size){
-    const c=document.createElement('canvas');c.width=c.height=size;
-    const ctx=c.getContext('2d');
-    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,'#1e1e26');g.addColorStop(1,'#0f0f13');
-    ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
-    ctx.fillStyle='#a695ff';ctx.font=`800 ${size*.42}px sans-serif`;
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('F',size/2,size/2+size*.03);
-    ctx.beginPath();ctx.arc(size*.62,size*.55,size*.06,0,Math.PI*2);ctx.fillStyle='#7c6af7';ctx.fill();
-    return c.toDataURL('image/png');
-  }
-  const m={name:'Focus — 个人任务',short_name:'Focus',description:'个人任务管理',start_url:'./',display:'standalone',background_color:'#0f0f13',theme_color:'#0f0f13',orientation:'portrait',icons:[{src:makeIcon(192),sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:makeIcon(512),sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
-  const blob=new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
-  document.getElementById('manifest-placeholder').href=URL.createObjectURL(blob);
-})();
+function makeIcon(size){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const ctx=c.getContext('2d');
+  const dark=document.documentElement.dataset.theme!=='light';
+  const g=ctx.createLinearGradient(0,0,size,size);
+  if(dark){g.addColorStop(0,'#1e1e26');g.addColorStop(1,'#0f0f13');}else{g.addColorStop(0,'#ffffff');g.addColorStop(1,'#eef0f7');}
+  ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+  ctx.fillStyle=dark?'#a695ff':'#6f5af4';ctx.font=`800 ${size*.42}px sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('F',size/2,size/2+size*.03);
+  ctx.beginPath();ctx.arc(size*.62,size*.55,size*.06,0,Math.PI*2);ctx.fillStyle='#7c6af7';ctx.fill();
+  return c.toDataURL('image/png');
+}
+let manifestUrl=null;
+function refreshManifest(){
+  const dark=document.documentElement.dataset.theme!=='light';
+  const m={name:'Focus — 个人任务',short_name:'Focus',description:'个人任务管理',start_url:'./',display:'standalone',background_color:dark?'#0f0f13':'#f4f4f9',theme_color:dark?'#0f0f13':'#f4f4f9',orientation:'portrait',icons:[{src:makeIcon(192),sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:makeIcon(512),sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
+  if(manifestUrl)URL.revokeObjectURL(manifestUrl);
+  manifestUrl=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
+  document.getElementById('manifest-placeholder').href=manifestUrl;
+}
+refreshManifest();
 
 // ══════════════════════════════════════════
 //  Service Worker
 // ══════════════════════════════════════════
-if ('serviceWorker' in navigator) {
-  const sw=`const CACHE='focus-v4';
-self.addEventListener('install',e=>{
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c=>c.add('./')));
-});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
-self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  if(e.request.url.includes('api.github.com'))return;
-  if(e.request.mode==='navigate'){e.respondWith(caches.match('./').then(r=>r||fetch(e.request)));return;}
-  e.respondWith(caches.match(e.request).then(r=>{
-    if(r)return r;
-    return fetch(e.request).then(res=>{
-      if(res.ok&&(e.request.url.includes('fonts.g')||e.request.url.includes('fonts.s'))){const cl=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}
-      return res;
-    }).catch(()=>new Response('',{status:503}));
-  }));
-});`;
-  const blob=new Blob([sw],{type:'text/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob),{scope:'./'}).catch(()=>{});
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // 注意：SW 脚本必须是真实的同源 http(s) 文件——浏览器规范拒绝 blob:/data: URL，
+  // 之前用 Blob URL 注册的写法会静默失败（离线和移动端通知从未生效）。
+  navigator.serviceWorker.register('sw.js', { scope: './' }).catch(()=>{});
 }
 
 // ══════════════════════════════════════════
@@ -1351,17 +1549,18 @@ async function requestNotifPermission() {
   }
 }
 
-function sendNotification(title, body, tag) {
+const NOTIF_ICON = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%230f0f13"/><text x="32" y="44" text-anchor="middle" font-size="36" font-family="sans-serif" font-weight="900" fill="%23a695ff">F</text></svg>';
+
+async function sendNotification(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const opts = { body, tag, icon: NOTIF_ICON, badge: NOTIF_ICON, silent: false, requireInteraction: false };
   try {
-    new Notification(title, {
-      body,
-      tag,
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%230f0f13"/><text x="32" y="44" text-anchor="middle" font-size="36" font-family="sans-serif" font-weight="900" fill="%23a695ff">F</text></svg>',
-      badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%230f0f13"/><text x="32" y="44" text-anchor="middle" font-size="36" font-family="sans-serif" font-weight="900" fill="%23a695ff">F</text></svg>',
-      silent: false,
-      requireInteraction: false,
-    });
+    // Android Chrome 只支持 SW 通知；无 SW 时回退 new Notification()（桌面）
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) { reg.showNotification(title, opts); return; }
+    }
+    new Notification(title, opts);
   } catch(e) {}
 }
 
@@ -1397,7 +1596,7 @@ function checkAndNotify() {
       if (remindAt <= now && now < deadline) {
         const key = `deadline_${t.id}_${cfg.advanceMin}_${todayKey}`;
         if (!fired[key]) {
-          const advLabel = cfg.advanceMin >= 1440 ? '明天到期' : cfg.advanceMin >= 60 ? `${cfg.advanceMin/60} 小时后到期` : `${cfg.advanceMin} 分钟后到期`;
+          const advLabel = cfg.advanceMin >= 1440 ? '1 天内到期' : cfg.advanceMin >= 60 ? `${Math.round(cfg.advanceMin/60)} 小时后到期` : `${cfg.advanceMin} 分钟后到期`;
           sendNotification('⏰ 任务即将到期', `${t.name} — ${advLabel}`, key);
           fired[key] = Date.now();
         }
@@ -1426,6 +1625,16 @@ function checkAndNotify() {
   }
 
   NOTIF.saveFired(fired);
+}
+
+// 已触发记录只保留 7 天，防止 localStorage 无限膨胀
+function pruneFired() {
+  try {
+    const f = NOTIF.getFired(), cutoff = Date.now() - 7*24*3600*1000;
+    let changed = false;
+    for (const k in f) { if (f[k] < cutoff) { delete f[k]; changed = true; } }
+    if (changed) NOTIF.saveFired(f);
+  } catch(e) {}
 }
 
 function saveNotifSettings() {
@@ -1485,6 +1694,11 @@ async function init() {
   initCalendar();
   render();
   renderJournal();
+  applyTheme();
+  renderThemeChips();
+  pruneFired();
+  // 加载动画结束后再播放一次卡片入场,避免动画在遮罩后面白放
+  setTimeout(()=>{ animateList=true; render(); }, 750);
 
   // Hide loading screen
   setTimeout(()=>{
@@ -1498,6 +1712,7 @@ async function init() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       tasks = LS.getTasks();
+      animateList = true;
       render();
       checkAndNotify();
     }

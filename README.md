@@ -90,6 +90,10 @@ python -m http.server 8000
 | **逾期警告** | 任务超过截止时间即推送 | 开关 |
 | **每日早报** | 每天早上推送今日任务概览 | 开关 + 推送时间 |
 
+### 外观
+
+- **主题切换**：深色 / 浅色 / 跟随系统（设置页「外观」），状态栏颜色与图标自动适配
+
 ### 数据管理
 
 - **导出备份**：下载完整 JSON 文件
@@ -104,21 +108,22 @@ python -m http.server 8000
 
 ```
 focus/
-├── index.html          ← 唯一源文件（~82KB，约 1425 行）
-│                       ├── CSS     (~380行) 深色主题样式
-│                       ├── HTML    (~320行) 页面结构
-│                       └── JS      (~700行) 全部逻辑
+├── index.html          ← 主体源文件（CSS + HTML + JS 全内联）
+│                       ├── CSS     (~420行) 明暗双主题样式
+│                       ├── HTML    (~330行) 页面结构
+│                       └── JS      (~780行) 全部逻辑
 │                           ├── localStorage 封装层
 │                           ├── GitHub Gist API 客户端
 │                           ├── 任务 CRUD + 渲染
-│                           ├── 日历 + 日记模块
+│                           ├── 日历 + 日记 + 甘特图
 │                           ├── 通知调度系统
-│                           └── PWA Manifest + Service Worker
+│                           └── 运行时生成 PWA Manifest
+├── sw.js               ← Service Worker（离线缓存 + 移动端通知）
 ├── README.md           ← 本文件
 └── .git/               ← Git 仓库
 ```
 
-> 之所以只有一个文件，是因为 PWA 要求所有资源在离线时可访问。单 HTML 部署零配置，一份文件即整个应用。
+> 主体保持单 HTML 零配置部署；但 Service Worker 必须是真实的同源 `sw.js` 文件——SW 规范拒绝 `blob:`/`data:` URL，所以真正的离线能力需要这第二个文件。
 
 ---
 
@@ -152,26 +157,30 @@ flowchart TD
     I --> J[PATCH /gists/{id} 更新]
 ```
 
-### Service Worker 离线策略
+### Service Worker 离线策略（sw.js）
 
 ```
 安装时 → self.skipWaiting() (立即激活)
-激活时 → 清除旧缓存
-请求时 → cache-first: 命中缓存直接返回
-       → 未命中: 网络请求 (仅缓存 fonts.googleapis)
-       → github.com: 跳过缓存 (始终走网络)
+激活时 → 清除旧版本缓存
+页面导航 → 网络优先 (在线拿最新版) / 离线回退缓存
+其他同源 GET → cache-first: 命中缓存直接返回
+api.github.com → 跳过缓存 (同步始终走网络)
+notificationclick → 点击通知回到应用窗口
 ```
 
 ### 通知系统
 
 ```
-scheduleAllNotifications() 遍历所有任务:
-  ┌─ 到期前提醒: 计算 (截止时间 - 提前量) → setTimeout
-  ├─ 逾期推送:   计算 截止时间 → setTimeout
-  ├─ 每日早报:   计算 08:00 → setTimeout
-  └─ 去重:     NOTIF.getFired() 记录已触发 ID
+checkAndNotify() 在每次数据变更 / 页面回到前台时遍历任务:
+  ┌─ 到期前提醒: (截止时间 - 提前量) ≤ 现在 < 截止时间 → 推送
+  ├─ 逾期推送:   截止时间已过且未完成 → 推送
+  ├─ 每日早报:   到达设定时间且有到期/逾期任务 → 推送
+  └─ 去重:     focus_notif_fired 记录已触发 ID (保留 7 天自动清理)
 
-限制: 页面关闭后 setTimeout 丢失 (PWA 浏览器限制)
+通知优先通过 ServiceWorkerRegistration.showNotification() 发送
+(Android Chrome 仅支持此方式),无 SW 时回退 new Notification()
+
+限制: 检查发生在应用打开期间,关闭应用后不会后台推送 (无推送服务器)
 ```
 
 ---
@@ -216,7 +225,7 @@ scheduleAllNotifications() 遍历所有任务:
 ```bash
 # 1. 创建 GitHub 仓库
 git init
-git add index.html README.md
+git add index.html sw.js README.md
 git commit -m "init"
 
 # 2. 推送到 GitHub
@@ -232,7 +241,7 @@ git push -u origin main
 
 | 平台 | 方式 | 备注 |
 |:----|:-----|:-----|
-| **Netlify** | 拖拽 `index.html` 到 Netlify Drop | HTTPS + 自定义域名 |
+| **Netlify** | 拖拽 `index.html` + `sw.js` 到 Netlify Drop | HTTPS + 自定义域名 |
 | **Vercel** | 直接连接 GitHub 仓库 | 自动部署 |
 | **Cloudflare Pages** | 连接 Git 仓库 | 全球 CDN |
 | **本地** | 直接双击 `index.html` | 离线可用，但 SW 需 HTTPS |
@@ -251,7 +260,7 @@ A: 如果配置过 Token，在设置页重新输入 Token →「连接并同步�
 A: Token 只需要 `gist` 权限（仅能创建/修改 Gist），无法读写你的仓库或个人信息。它只保存在你的设备。
 
 **Q: 通知为什么有时不触发？**
-A: 通知依赖页面打开状态（`setTimeout` 在 JS 主线程）。如果关闭了标签页，`setTimeout` 会被浏览器暂停。这是 PWA 的普遍限制。
+A: 提醒检查发生在应用打开期间（每次数据变更、回到前台时）。关闭应用后不会后台推送——这是无后端 PWA 的普遍限制。Android Chrome 需 v4.1+（走 Service Worker 通知）；iOS 需 16.4+ 且以安装到主屏的 PWA 方式使用。
 
 **Q: 支持在电脑/平板/手机上同时使用吗？**
 A: 支持。PWA 本质是网页，任何有浏览器的设备都能使用。配置同一 Token 即可多端同步。
@@ -266,7 +275,8 @@ A: 支持。PWA 本质是网页，任何有浏览器的设备都能使用。配�
 2. **标签系统** — 为任务添加 tag，按 tag 筛选
 3. **重复任务** — 增加 `repeat` 字段，每日/每周自动生成
 4. **WebDAV 同步** — 作为 Gist 之外的另一种同步后端（适合自建 NAS）
-5. **暗/亮主题切换** — 定义 `:root[data-theme="light"]` 变量集
+
+> 暗/亮主题切换已在 v4.1 实现（`:root[data-theme="light"]` 变量集 + 设置页「外观」）。
 
 ### 代码拆分时机
 
