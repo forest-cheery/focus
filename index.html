@@ -994,6 +994,8 @@ function sortTasks(arr) {
   const pri={high:0,mid:1,low:2};
   return [...arr].sort((a,b) => {
     if (a.done!==b.done) return a.done?1:-1;
+    // 已完成任务之间:按完成时间降序,刚完成的排最上面
+    if (a.done&&b.done) return ((b.doneAt||b.createdAt||0)-(a.doneAt||a.createdAt||0));
     const ao=isOverdue(a),bo=isOverdue(b); if(ao!==bo) return ao?-1:1;
     if (!a.date&&!b.date) return (pri[a.priority||'mid'])-(pri[b.priority||'mid']);
     if (!a.date) return 1; if (!b.date) return -1;
